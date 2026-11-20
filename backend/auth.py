@@ -1,23 +1,29 @@
+"""
+ExposureFence Authentication Service
+Enforces strict Bcrypt verification for out-of-band admin approvers.
+Requires APPROVER_PASSWORD_HASH to be explicitly configured.
+No hardcoded default passwords permitted.
+"""
+
 import os
 import bcrypt
 
-# Default password for local single-admin development: "ExposureFenceAdmin2026!"
-DEFAULT_DEV_HASH = "$2b$12$KIXbV7tY49v1x5d806aPceKzL985yJ58r2j2s9K3W0a7n2v7c4hKe"
 
-
-def verify_password(password: str) -> bool:
+def verify_password(password: str, username: str = None) -> bool:
+    """
+    Verifies admin credentials against APPROVER_PASSWORD_HASH.
+    Authentication is strictly prohibited if APPROVER_PASSWORD_HASH is unset.
+    Never prints or logs password or hash strings.
+    """
     password_hash = os.getenv("APPROVER_PASSWORD_HASH")
-
     if not password_hash:
-        # Allow default dev password if APPROVER_PASSWORD_HASH not explicitly set
-        if password == "ExposureFenceAdmin2026!":
-            return True
+        return False
+
+    expected_user = os.getenv("APPROVER_USERNAME", "admin")
+    if username is not None and username != expected_user:
         return False
 
     try:
-        return bcrypt.checkpw(
-            password.encode(),
-            password_hash.encode()
-        )
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
     except Exception:
         return False

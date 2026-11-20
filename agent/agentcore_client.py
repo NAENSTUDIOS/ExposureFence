@@ -8,7 +8,7 @@ import json
 import logging
 import os
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
@@ -42,13 +42,17 @@ class AgentCoreClient:
         return self._runtime_client
 
     def get_status(self) -> Dict[str, Any]:
-        """Returns the current AgentCore deployment and connection status."""
+        """
+        Returns the current AgentCore deployment and connection status.
+        Harness is considered READY only when actual AWS status is 'READY' or 'ACTIVE'.
+        """
         status = {
             "configured_region": self.region_name,
             "harness_arn": self.harness_arn or "NOT_CONFIGURED",
             "aws_credentials_present": False,
             "caller_arn": None,
             "harness_deployed": False,
+            "harness_status": "NOT_CONFIGURED",
             "status_message": "Awaiting configuration"
         }
 
@@ -68,10 +72,20 @@ class AgentCoreClient:
         try:
             control = self._session.client("bedrock-agentcore-control", region_name=self.region_name)
             harness_id = self.harness_arn.split("/")[-1]
-            harness = control.get_harness(harnessId=harness_id)
-            status["harness_deployed"] = True
-            status["harness_details"] = harness.get("harness", {})
-            status["status_message"] = "AgentCore Harness Ready and Deployed"
+            response = control.get_harness(harnessId=harness_id)
+            harness_data = response.get("harness", {})
+            raw_status = harness_data.get("status", "UNKNOWN")
+            status["harness_status"] = raw_status
+            status["harness_details"] = harness_data
+
+            # Harness is READY only when actual AWS status is READY or ACTIVE
+            if raw_status in ("READY", "ACTIVE"):
+                status["harness_deployed"] = True
+                status["status_message"] = f"AgentCore Harness Ready and Deployed (Status: {raw_status})"
+            else:
+                status["harness_deployed"] = False
+                status["status_message"] = f"AgentCore Harness exists but not ready (Status: {raw_status})"
+
         except Exception as e:
             status["status_message"] = f"Harness verification error: {e}"
 
@@ -86,7 +100,7 @@ class AgentCoreClient:
         allowed_tools: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
-        Executes the 12-step inline-function tool handoff loop with Amazon Bedrock AgentCore.
+        Executes the official 12-step inline-function tool handoff loop with Amazon Bedrock AgentCore.
         """
         if not self.harness_arn:
             raise ValueError("AGENTCORE_HARNESS_ARN is not configured.")
@@ -94,7 +108,8 @@ class AgentCoreClient:
         session_id = runtime_session_id or str(uuid.uuid4())
         allowed = allowed_tools or APPROVED_TOOL_NAMES
 
-        messages = [
+        # Initial turn: send user prompt
+        current_messages = [
             {
                 "role": "user",
                 "content": [{"text": prompt}]
@@ -102,7 +117,6 @@ class AgentCoreClient:
         ]
 
         executed_tools: List[Dict[str, Any]] = []
-        conversation_history = list(messages)
         final_text = ""
         iterations = 0
 
@@ -113,10 +127,11 @@ class AgentCoreClient:
             invoke_args = {
                 "harnessArn": self.harness_arn,
                 "runtimeSessionId": session_id,
-                "messages": conversation_history,
+                "messages": current_messages,
                 "allowedTools": allowed
             }
 
+            # Resend tool definitions on continuation calls when supplied as overrides
             if tools_override:
                 invoke_args["tools"] = tools_override
             if system_prompt:
@@ -125,81 +140,115 @@ class AgentCoreClient:
             try:
                 response = self.runtime.invoke_harness(**invoke_args)
             except (BotoCoreError, ClientError) as e:
-                logger.error("InvokeHarness failed: %s", e)
+                logger.error("InvokeHarness failed on turn %d: %s", iterations, e)
                 raise RuntimeError(f"AgentCore InvokeHarness API error: {e}") from e
 
             stream = response.get("stream")
             if not stream:
                 raise RuntimeError("Empty stream returned from InvokeHarness.")
 
-            # Stream processing state
+            # Stream processing tracking contentBlockIndex
             current_text_blocks = []
             pending_tool_calls: List[Dict[str, Any]] = []
-            current_tool_call: Optional[Dict[str, Any]] = None
+            active_tool_calls_by_index: Dict[int, Dict[str, Any]] = {}
+            seen_tool_use_ids: Set[str] = set()
             stop_reason = None
 
             for event in stream:
                 if "contentBlockStart" in event:
+                    cb_index = event["contentBlockStart"].get("contentBlockIndex", 0)
                     start_data = event["contentBlockStart"].get("start", {})
                     if "toolUse" in start_data:
                         tu = start_data["toolUse"]
-                        current_tool_call = {
-                            "toolUseId": tu.get("toolUseId"),
+                        tu_id = tu.get("toolUseId")
+                        if not tu_id:
+                            raise ValueError(f"Malformed stream: missing toolUseId in contentBlockStart at index {cb_index}")
+
+                        if tu_id in seen_tool_use_ids:
+                            raise ValueError(f"Duplicate toolUseId detected: {tu_id}")
+                        seen_tool_use_ids.add(tu_id)
+
+                        active_tool_calls_by_index[cb_index] = {
+                            "contentBlockIndex": cb_index,
+                            "toolUseId": tu_id,
                             "name": tu.get("name"),
                             "input_str": ""
                         }
 
                 elif "contentBlockDelta" in event:
+                    cb_index = event["contentBlockDelta"].get("contentBlockIndex", 0)
                     delta = event["contentBlockDelta"].get("delta", {})
+
                     if "text" in delta:
-                        chunk = delta["text"]
-                        current_text_blocks.append(chunk)
-                    elif "toolUse" in delta and current_tool_call:
-                        current_tool_call["input_str"] += delta["toolUse"].get("input", "")
+                        current_text_blocks.append(delta["text"])
+                    elif "toolUse" in delta and cb_index in active_tool_calls_by_index:
+                        active_tool_calls_by_index[cb_index]["input_str"] += delta["toolUse"].get("input", "")
 
                 elif "contentBlockStop" in event:
-                    if current_tool_call:
-                        pending_tool_calls.append(current_tool_call)
-                        current_tool_call = None
+                    cb_index = event["contentBlockStop"].get("contentBlockIndex", 0)
+                    if cb_index in active_tool_calls_by_index:
+                        pending_tool_calls.append(active_tool_calls_by_index.pop(cb_index))
 
                 elif "messageStop" in event:
                     stop_reason = event["messageStop"].get("stopReason")
+
+                elif "validationException" in event:
+                    err_detail = event["validationException"].get("message", "Validation exception in stream")
+                    raise ValueError(f"AgentCore stream validation error: {err_detail}")
+
+                elif "internalServerException" in event:
+                    err_detail = event["internalServerException"].get("message", "Internal server exception in stream")
+                    raise RuntimeError(f"AgentCore internal error: {err_detail}")
 
             turn_text = "".join(current_text_blocks).strip()
             if turn_text:
                 final_text = turn_text
 
-            # If no tools requested or end_turn reached, finish loop
-            if not pending_tool_calls or stop_reason != "tool_use":
-                logger.info("Agent completed without further tool calls. Stop reason: %s", stop_reason)
+            # If no tools requested or stopReason indicates completion, finish loop
+            if not pending_tool_calls:
+                logger.info("Agent turn completed with no pending tool calls. Stop reason: %s", stop_reason)
                 break
 
-            # Process requested inline tools through ExposureFence dispatcher
-            assistant_content = []
-            if turn_text:
-                assistant_content.append({"text": turn_text})
+            # Verify that stopReason equals 'tool_use' when tool calls are pending
+            if stop_reason != "tool_use":
+                logger.warning("Tool calls detected but stream stopReason was '%s' instead of 'tool_use'", stop_reason)
 
+            # Process requested inline tools through ExposureFence dispatcher only
             tool_result_content = []
 
             for tool_call in pending_tool_calls:
                 tu_id = tool_call["toolUseId"]
                 tool_name = tool_call["name"]
-                input_str = tool_call["input_str"]
+                input_str = tool_call["input_str"].strip()
 
-                try:
-                    tool_args = json.loads(input_str) if input_str else {}
-                except json.JSONDecodeError:
-                    tool_args = {}
+                # Validate JSON arguments
+                tool_args = {}
+                malformed_json = False
+                if input_str:
+                    try:
+                        tool_args = json.loads(input_str)
+                    except json.JSONDecodeError as jde:
+                        malformed_json = True
+                        logger.warning("Malformed JSON in tool argument stream for %s: %s", tool_name, jde)
 
-                assistant_content.append({
-                    "toolUse": {
-                        "toolUseId": tu_id,
-                        "name": tool_name,
-                        "input": tool_args
-                    }
-                })
+                if malformed_json:
+                    err_msg = f"Client error: Malformed JSON arguments for tool '{tool_name}'."
+                    executed_tools.append({
+                        "tool": tool_name,
+                        "args": input_str,
+                        "status": "ERROR",
+                        "error": err_msg
+                    })
+                    tool_result_content.append({
+                        "toolResult": {
+                            "toolUseId": tu_id,
+                            "status": "error",
+                            "content": [{"text": err_msg}]
+                        }
+                    })
+                    continue
 
-                # Server-side security check against allowlist
+                # Server-side security check against exact allowlist
                 if tool_name not in allowed or tool_name not in ALLOWED_TOOLS:
                     err_msg = f"Security Policy Violation: Tool '{tool_name}' is not in the approved allowlist."
                     logger.warning(err_msg)
@@ -218,7 +267,7 @@ class AgentCoreClient:
                     })
                     continue
 
-                # Execute strictly through existing dispatcher
+                # Execute strictly through existing backend.dispatcher only
                 try:
                     result = execute(tool_name, **tool_args)
                     executed_tools.append({
@@ -251,20 +300,21 @@ class AgentCoreClient:
                         }
                     })
 
-            # Update conversation history with assistant turn and tool results
-            conversation_history.append({
-                "role": "assistant",
-                "content": assistant_content
-            })
-            conversation_history.append({
-                "role": "user",
-                "content": tool_result_content
-            })
+            # For continuation, send only the matching user toolResult message
+            # AgentCore managed harness retains conversation state server-side
+            current_messages = [
+                {
+                    "role": "user",
+                    "content": tool_result_content
+                }
+            ]
+
+        if iterations >= self.max_iterations and pending_tool_calls:
+            raise RuntimeError(f"Excessive tool iterations ({self.max_iterations}) exceeded safety limit.")
 
         return {
             "session_id": session_id,
             "turns": iterations,
             "response": final_text,
-            "executed_tools": executed_tools,
-            "history": conversation_history
+            "executed_tools": executed_tools
         }

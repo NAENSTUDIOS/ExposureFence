@@ -105,6 +105,23 @@ async function loadSummary() {
     const res = await fetch('/api/summary');
     const data = await res.json();
 
+    const modeEl = document.getElementById('dataModeBadge');
+    if (modeEl && data.data_mode) {
+      modeEl.textContent = data.data_mode;
+      if (data.data_mode === 'AWS READ-ONLY') {
+        modeEl.style.borderColor = 'var(--accent-green)';
+        modeEl.style.color = 'var(--accent-green)';
+      } else {
+        modeEl.style.borderColor = 'var(--accent-cyan)';
+        modeEl.style.color = 'var(--accent-cyan)';
+      }
+    }
+
+    const testDesc = document.getElementById('kpiTestCountDesc');
+    if (testDesc && data.total_offline_tests_passing) {
+      testDesc.textContent = `Based on ${data.total_offline_tests_passing} automated tests`;
+    }
+
     document.getElementById('kpiScore').textContent = `${data.offline_security_score}%`;
     document.getElementById('kpiRules').textContent = data.offline_rules_passing;
     document.getElementById('kpiAttacks').textContent = data.offline_attacks_blocked;
@@ -182,12 +199,14 @@ async function loadEvidence() {
 
     evidence.forEach(e => {
       const tr = document.createElement('tr');
+      const isOk = e.integrity_status === 'VERIFIED_FIXTURE' || e.integrity_status === 'VERIFIED';
+      const badgeClass = isOk ? 'badge-green' : 'badge-red';
       tr.innerHTML = `
         <td><strong>${e.evidence_id}</strong></td>
         <td>${e.description}</td>
         <td><code>${e.fixture_file}</code></td>
         <td><span class="code-cell">${e.sha256.substring(0, 16)}...</span></td>
-        <td><span class="badge badge-green">${e.integrity_status}</span></td>
+        <td><span class="badge ${badgeClass}">${e.integrity_status}</span></td>
       `;
       tbody.appendChild(tr);
     });
@@ -344,6 +363,9 @@ async function loadAgentCoreStatus() {
 
     const modelEl = document.getElementById('agentModelBadge');
     if (modelEl && data.model_id) modelEl.textContent = data.model_id;
+
+    const guardrailEl = document.getElementById('agentGuardrail');
+    if (guardrailEl && data.guardrail_status) guardrailEl.textContent = data.guardrail_status;
 
     const statusBadge = document.getElementById('agentRuntimeStatus');
     const statusMsg = document.getElementById('agentStatusMessage');

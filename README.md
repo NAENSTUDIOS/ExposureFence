@@ -112,11 +112,15 @@ A lightweight, high-performance console implemented with Python's standard-libra
 
 ### Installation
 ```bash
-git clone https://github.com/<your-username>/ExposureFence.git
+git clone https://github.com/NAENSTUDIOS/ExposureFence.git
 cd ExposureFence
 
-# Copy configuration
+# Copy configuration template
 cp .env.example .env
+
+# Generate Bcrypt hash for console admin password
+python -c "import bcrypt; print(bcrypt.hashpw(b'YourAdminPasswordHere', bcrypt.gensalt()).decode())"
+# Add the output to APPROVER_PASSWORD_HASH in .env
 ```
 
 ### Running the Local Security Console
@@ -124,16 +128,16 @@ cp .env.example .env
 python -m backend.server
 ```
 Open your browser to: **`http://127.0.0.1:8000`**  
-Default local admin credentials:
-- **Username:** `admin`
-- **Password:** `ExposureFenceAdmin2026!`
+Console admin credentials:
+- **Username:** `admin` (or configured `APPROVER_USERNAME`)
+- **Password:** The password corresponding to `APPROVER_PASSWORD_HASH`
 
 ---
 
 ## 7. Automated Testing Suite
 
-### 1. Offline Verification Suite (39 Tests)
-Runs in <1.5 seconds locally without incurring cloud costs:
+### 1. Offline Verification Suite (46 Tests)
+Runs in <2.5 seconds locally without incurring any cloud costs:
 ```bash
 python -m pytest tests/offline backend/test_database.py -v
 ```
@@ -163,7 +167,7 @@ T05 PASS
 T06 PASS
 T07 PASS
 
-Total Tests Executed: 39
+Total Tests Executed: 46
 Final Security Score: 100%
 ```
 
@@ -175,7 +179,25 @@ python -m pytest tests/live -v
 
 ---
 
-## 8. Amazon Bedrock AgentCore Deployment
+## 8. Phase 3 Read-Only AWS Connectors & Data Modes
+
+ExposureFence supports two operational modes governed by `EXPOSUREFENCE_DATA_MODE`:
+
+1. **`mock` mode (Default):**
+   - Evaluates synthetic AWS fixtures with cryptographic SHA-256 integrity verification.
+   - **Zero AWS calls, zero cloud spend, 100% deterministic local execution.**
+
+2. **`aws` mode (Read-Only Inspection):**
+   - Uses read-only Boto3 connectors in `backend/connectors/`:
+     - **`aws_s3.py`:** Inspects bucket metadata, Block Public Access configuration, bucket policies, and ACLs. Never accesses object contents.
+     - **`aws_ec2.py`:** Inspects security group ingress rules for public CIDRs (`0.0.0.0/0`, `::/0`) and exposed ports (22, 3389). Never authorizes or revokes rules.
+     - **`aws_iam.py`:** Inspects IAM roles, trust policies, and attached administrative policies. Never inspects access keys or exports secrets.
+   - **Zero Mutation Invariant:** All connectors are mathematically provable to be read-only (zero write, update, create, or delete methods).
+   - Generates cryptographically normalized evidence records (`EV-AWS-*`) with SHA-256 digests.
+
+---
+
+## 9. Amazon Bedrock AgentCore Deployment
 
 ### Deploy Managed Harness
 ```bash
@@ -185,7 +207,7 @@ This script:
 1. Validates caller identity via AWS STS.
 2. Registers the three inline tools with strict schemas.
 3. Sets `allowedTools = ["read_mock_s3", "read_mock_security_groups", "propose_fix"]`.
-4. Creates or updates `ExposureFenceHarness` with Claude 3.5 Sonnet v2.
+4. Creates or updates `ExposureFenceHarness` with Amazon Nova Lite (`amazon.nova-lite-v1:0`).
 5. Saves state to `agent/harness_state.json`.
 
 ### Direct Agent Invocation
@@ -195,10 +217,10 @@ python -m agent.invoke "Review mock S3 and security-group data, identify exposur
 
 ---
 
-## 9. Strict Zero-Cost & Financial Policy
+## 10. Strict Zero-Cost & Financial Policy
 
 ExposureFence is strictly governed by a **₹0.00 / $0.00 out-of-pocket budget**:
-- **Offline Development:** All 39 core tests and the local Security Operations Console run 100% locally on standard Python and SQLite without cloud charges.
+- **Offline Development:** All 46 core tests and the local Security Operations Console run 100% locally on standard Python and SQLite without cloud charges.
 - **Controlled Invocations:** Max tokens capped at 1,000; AgentCore Memory, Gateway, Browser, and Code Interpreter are permanently disabled.
 - **Cloud Pause & Teardown:** Whenever a cloud demonstration concludes, run the decommissioning script to eliminate all recurring charges:
   ```bash
@@ -208,6 +230,6 @@ ExposureFence is strictly governed by a **₹0.00 / $0.00 out-of-pocket budget**
 
 ---
 
-## 10. License
+## 11. License
 
-ExposureFence is licensed under the **Apache 2.0 / MIT License**. See `LICENSE` for details.
+ExposureFence is licensed under the **MIT License**. See `LICENSE` for details.

@@ -20,7 +20,7 @@ User / Security Officer
        ▼ (boto3: bedrock-agentcore Converse Streaming)
 [ Amazon Bedrock AgentCore Managed Harness ] (ExposureFenceHarness)
        │
-       ├─► [ Amazon Bedrock Foundation Model ] (Claude 3.5 Sonnet v2)
+       ├─► [ Amazon Bedrock Foundation Model ] (Amazon Nova Lite / Claude 3.5 Haiku)
        │
        ▼ (stream: toolUse events intercepted)
 [ 12-Step Inline Tool Dispatcher ] (agent/agentcore_client.py)
@@ -87,9 +87,22 @@ User / Security Officer
 - **Verification:** `verify_audit_hash_chain()` recalculates the entire chain from Genesis (`0000...0000`). If any past record is modified, the check returns `False`.
 - **Zero Mutation Verification:** `verify_zero_mutations()` scans all historical event payloads to ensure zero mutation markers exist.
 
+### Layer 6: Phase 3 Read-Only AWS Connectors (`backend/connectors/`)
+- **Data Mode Switch (`EXPOSUREFENCE_DATA_MODE`):**
+  - **`mock` mode (Default):** Pure local execution against cryptographically verified fixtures (`mock_data/*.json`). Zero AWS calls or cloud charges.
+  - **`aws` mode (Read-Only Inspection):** Direct AWS queries using Boto3 client sessions with zero write permissions.
+- **Read-Only Invariant Enforcement:**
+  - `aws_s3.py`: Lists buckets, Block Public Access configuration, bucket policy status, ACL grants. Never reads S3 object data.
+  - `aws_ec2.py`: Describes security groups, evaluates CIDR `0.0.0.0/0` and `::/0` on ports 22/3389. Never authorizes or revokes rules.
+  - `aws_iam.py`: Lists roles, inspects trust policies and attached admin policies. Never reads access keys or secrets.
+  - Every connector function is structurally tested to ensure zero mutating methods (`put_*`, `delete_*`, `create_*`, `authorize_*`, `revoke_*`).
+- **Normalized Cryptographic Evidence:** Produces canonical JSON hashed with SHA-256 (`EV-AWS-{SERVICE}-{ID}-{HASH8}`) with timestamp and account ID attribution.
+
 ---
 
 ## 3. Rules as Tests Matrix (R01–R07 & T01–T07)
+
+Total automated offline test coverage: **46 passing tests** across `tests/offline/` and `backend/test_database.py`.
 
 | Rule ID | Rule Policy | Enforcement Layer | Verifying Attack Test | Expected Outcome |
 | :---: | :--- | :--- | :---: | :--- |

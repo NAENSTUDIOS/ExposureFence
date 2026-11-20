@@ -14,7 +14,8 @@ All core security and governance logic has been fully developed, hardened, and v
 
 | Component | Status | Verification & Code Evidence |
 | :--- | :---: | :--- |
-| **Offline Test Suite** | **100% PASS** | **39 passed in 1.33s** (`tests/offline/` & `backend/test_database.py`). |
+| **Offline Test Suite** | **100% PASS** | **46 passed in 2.46s** (`tests/offline/` & `backend/test_database.py`). |
+| **Phase 3 Connectors** | **ACTIVE** | `backend/connectors/`: Read-only S3, EC2, IAM inspection with Botocore Stubber unit tests. |
 | **Security Scorecard** | **100%** | `backend/evaluate.py`: R01–R07 PASS, T01–T07 PASS. |
 | **Three-Tool Dispatcher** | **ACTIVE** | `backend/dispatcher.py` strictly restricts tools to `read_mock_s3`, `read_mock_security_groups`, `propose_fix`. |
 | **Audit Hash Chaining** | **VERIFIED** | `audit.jsonl` (236 events): `verify_audit_hash_chain() == True`. |
@@ -232,10 +233,12 @@ $$\text{Cost}_{\text{Claude Haiku}} = (45{,}000 \times \$0.00000080) + (10{,}000
 
 ## 8. Total Estimated Test Exposure
 
-- **Worst-Case Cost per Full Evaluation Run (Amazon Nova Lite):** **₹0.43 ($0.0051)**
-- **Worst-Case Cost per Full Evaluation Run (Claude 3.5 Haiku):** **₹6.35 ($0.076)**
+- **Token Cost Estimate per Full Evaluation Run (Amazon Nova Lite):** **₹0.43 ($0.0051)** (Model token inference only)
+- **Token Cost Estimate per Full Evaluation Run (Claude 3.5 Haiku):** **₹6.35 ($0.076)** (Model token inference only)
+- **Runtime Compute / CPU / Memory:** **₹0.00 / $0.00** (Inline tools execute on local Python client; no container or serverless CPU provisioned in AWS).
+- **CloudWatch Log Ingestion:** **<$0.0001** (~150 KB logs).
 - **Ambient / Idling Cost:** **₹0.00 / $0.00** (No provisioned instances, no active memory stores).
-- **Personal Budget Exposure:** **₹0.00**. Because personal out-of-pocket spending is non-negotiable at ₹0, this cost must either be absorbed by valid promotional credits or deployment must remain disabled.
+- **Personal Budget Exposure:** **₹0.00 (STRICT ZERO-TOLERANCE)**. The ₹0.43 figure is strictly an inference token estimate and does not represent an approved expenditure. Because personal out-of-pocket spending is non-negotiable at ₹0 and AWS billing access returned `AccessDenied`, deployment remains safely BLOCKED until promotional credits are confirmed.
 
 ---
 
@@ -271,7 +274,7 @@ Before AWS deployment can safely execute, the following blockers must be resolve
 
 ### Path B: Credits Unavailable (Permanent Local Operation — CURRENT DEFAULT)
 1. Maintain all operations locally without deploying AWS resources.
-2. The entire security kernel, 39 offline tests, 7 security rules, 7 attack tests, and the 8-tab Security Console continue running locally at **100% functionality and ₹0 cost**.
+2. The entire security kernel, 46 offline tests, 7 security rules, 7 attack tests, and the 8-tab Security Console continue running locally at **100% functionality and ₹0 cost**.
 3. Live AgentCore tests in `tests/live/test_agentcore_attacks.py` safely remain `SKIPPED / NOT RUN`.
 4. The deployment scripts (`agent/deploy.py`, `agent/agentcore_client.py`, `agent/teardown.py`) remain preserved in Git for future internship or production demonstrations.
 

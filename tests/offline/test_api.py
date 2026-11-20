@@ -8,8 +8,22 @@ from backend.approvals import approve_by_id, reject_by_id
 
 
 def test_auth_and_session_lifecycle():
-    assert verify_password("ExposureFenceAdmin2026!") is True
-    assert verify_password("WrongPassword123") is False
+    import os
+    import bcrypt
+
+    # Without hash configured, authentication is strictly denied
+    if "APPROVER_PASSWORD_HASH" in os.environ:
+        del os.environ["APPROVER_PASSWORD_HASH"]
+    assert verify_password("AnyPassword") is False
+
+    # With valid hash configured
+    test_pwd = "TestSecurePassword123!"
+    os.environ["APPROVER_PASSWORD_HASH"] = bcrypt.hashpw(test_pwd.encode(), bcrypt.gensalt()).decode()
+    try:
+        assert verify_password(test_pwd) is True
+        assert verify_password("WrongPassword123") is False
+    finally:
+        del os.environ["APPROVER_PASSWORD_HASH"]
 
     session_id = create_session("admin")
     assert valid_session(session_id) is True
