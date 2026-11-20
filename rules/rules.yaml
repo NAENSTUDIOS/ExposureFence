@@ -7,6 +7,9 @@ rules:
     enforcement_layer: Application Boundary
     test_id: T01
     proof: Fixture hash validation
+    severity: CRITICAL
+    rule_type: INVARIANT_TEST
+    version: 1.0.0
 
   - id: R02
     description: No cloud mutations
@@ -15,6 +18,9 @@ rules:
     enforcement_layer: Tool Surface
     test_id: T02
     proof: Mutation count equals zero
+    severity: CRITICAL
+    rule_type: INVARIANT_TEST
+    version: 1.0.0
 
   - id: R03
     description: Three tool limit
@@ -23,6 +29,9 @@ rules:
     enforcement_layer: Dispatcher
     test_id: T03
     proof: Executed tool logs
+    severity: HIGH
+    rule_type: INVARIANT_TEST
+    version: 1.0.0
 
   - id: R04
     description: Proposal only
@@ -31,6 +40,9 @@ rules:
     enforcement_layer: Proposal Service
     test_id: T04
     proof: Proposal records
+    severity: HIGH
+    rule_type: INVARIANT_TEST
+    version: 1.0.0
 
   - id: R05
     description: Separate approval
@@ -39,6 +51,9 @@ rules:
     enforcement_layer: Authentication
     test_id: T05
     proof: Audit logs
+    severity: CRITICAL
+    rule_type: INVARIANT_TEST
+    version: 1.0.0
 
   - id: R06
     description: Untrusted fixture content
@@ -47,6 +62,9 @@ rules:
     enforcement_layer: Validation
     test_id: T06
     proof: Execution logs
+    severity: HIGH
+    rule_type: INVARIANT_TEST
+    version: 1.0.0
 
   - id: R07
     description: Evidence required
@@ -55,3 +73,57 @@ rules:
     enforcement_layer: Scoring Engine
     test_id: T07
     proof: Evidence hashes
+    severity: CRITICAL
+    rule_type: INVARIANT_TEST
+    version: 1.0.0
+
+  - id: SEC-S3-001
+    description: S3 bucket must not have public exposure
+    allowed_action: Read bucket access controls
+    forbidden_action: Permit unrestricted public access
+    enforcement_layer: Cloud Resource
+    test_id: T_S3_PUBLIC
+    proof: Bucket exposure analysis
+    severity: HIGH
+    rule_type: RESOURCE_COMPLIANCE
+    target_resource_type: AWS::S3::Bucket
+    version: 1.0.0
+    conditions:
+      - field: payload.normalized_evidence.is_public
+        operator: EQUALS
+        expected_value: false
+    remediation_template: ApplyS3BlockPublicAccess(resource_id)
+
+  - id: SEC-EC2-001
+    description: Security group must not expose SSH (port 22) to 0.0.0.0/0
+    allowed_action: Restrict SSH to bastion/VPN CIDRs
+    forbidden_action: Authorize 0.0.0.0/0 ingress on port 22
+    enforcement_layer: Cloud Resource
+    test_id: T_SG_SSH
+    proof: Ingress IP permissions CIDR inspection
+    severity: CRITICAL
+    rule_type: RESOURCE_COMPLIANCE
+    target_resource_type: AWS::EC2::SecurityGroup
+    version: 1.0.0
+    conditions:
+      - field: payload.normalized_evidence.is_public
+        operator: EQUALS
+        expected_value: false
+    remediation_template: RevokeSecurityGroupIngress(CidrIp=0.0.0.0/0, FromPort=22, ToPort=22)
+
+  - id: SEC-IAM-001
+    description: IAM role assume role policy must not allow unrestricted wildcard principal
+    allowed_action: Authorize specific AWS principal or service
+    forbidden_action: Trust wildcard Principal AWS *
+    enforcement_layer: Cloud Resource
+    test_id: T_IAM_WILDCARD
+    proof: AssumeRolePolicyDocument statement inspection
+    severity: CRITICAL
+    rule_type: RESOURCE_COMPLIANCE
+    target_resource_type: AWS::IAM::Role
+    version: 1.0.0
+    conditions:
+      - field: payload.normalized_evidence.has_wildcard_trust
+        operator: EQUALS
+        expected_value: false
+    remediation_template: UpdateAssumeRolePolicy(Principal={Service: 'ec2.amazonaws.com'})

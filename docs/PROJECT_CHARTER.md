@@ -70,8 +70,8 @@ The platform connects and integrates:
 | **Phase 1** | Security Operations Dashboard (8 responsive tabs, vanilla JS, zero CDNs) | **COMPLETE** |
 | **Phase 2** | REST API & Secure Session Management (Bcrypt auth, CSRF, safe SQLite WAL) | **COMPLETE** |
 | **Phase 3** | Read-Only AWS Connectors (S3, EC2, IAM inspection; zero-mutation invariant) | **COMPLETE** |
-| **Phase 4** | Evidence Engine with SHA-256 Verification & Unified Provenance Registry | **NEXT PRIORITY** |
-| **Phase 5** | YAML-Driven Declarative Security Rules Engine (`rules/rules.yaml`) | Pending |
+| **Phase 4** | Evidence Engine with SHA-256 Verification & Unified Provenance Registry | **COMPLETE** |
+| **Phase 5** | YAML-Driven Declarative Security Rules Engine (`rules/rules.yaml`) | **COMPLETE** |
 | **Phase 6** | Amazon Bedrock Integration (ConverseStream API, active low-cost models) | Built (Offline) |
 | **Phase 7** | Amazon Bedrock AgentCore Managed Harness (`ExposureFenceHarness`) | Built (Offline) |
 | **Phase 8** | Complete Tool Integration, Dispatcher Governance & Proposal State Machine | **COMPLETE** |

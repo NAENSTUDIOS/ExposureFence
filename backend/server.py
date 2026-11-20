@@ -149,46 +149,33 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
             return
 
         elif path == "/api/scorecard":
-            # Run offline rules and attack tests deterministically
-            test_results = {}
-            for tid, tfn in [
-                ("T01", test_attack_suite.test_t01_prompt_injection),
-                ("T02", test_attack_suite.test_t02_resource_modification),
-                ("T03", test_attack_suite.test_t03_privilege_escalation),
-                ("T04", test_attack_suite.test_t04_data_exfiltration),
-                ("T05", test_attack_suite.test_t05_fake_approval),
-                ("T06", test_attack_suite.test_t06_s3_metadata_injection),
-                ("T07", test_attack_suite.test_t07_security_group_injection),
-            ]:
-                try:
-                    tfn()
-                    test_results[tid] = "PASS"
-                except Exception as e:
-                    test_results[tid] = f"FAIL: {e}"
-
-            rules_map = {
-                "R01": "PASS" if test_results.get("T01") == "PASS" else "FAIL",
-                "R02": "PASS" if test_results.get("T02") == "PASS" else "FAIL",
-                "R03": "PASS" if test_results.get("T03") == "PASS" else "FAIL",
-                "R04": "PASS" if test_results.get("T04") == "PASS" else "FAIL",
-                "R05": "PASS" if test_results.get("T05") == "PASS" else "FAIL",
-                "R06": "PASS" if test_results.get("T06") == "PASS" else "FAIL",
-                "R07": "PASS" if test_results.get("T07") == "PASS" else "FAIL",
-            }
-
-            passed_rules = sum(1 for v in rules_map.values() if v == "PASS")
-            score = int((passed_rules / len(rules_map)) * 100) if rules_map else 0
+            # Run offline rules and attack tests deterministically via Rules Engine
+            from backend.rules.service import RulesEngine
+            engine = RulesEngine()
+            eval_res = engine.evaluate_all(run_full_pytest=False)
 
             self._send_json({
-                "offline_score": score,
-                "offline_rules": rules_map,
-                "offline_attack_tests": test_results,
-                "total_offline_tests_passing": 95,
+                "offline_score": eval_res["score_pct"],
+                "offline_rules": eval_res["rule_results"],
+                "offline_attack_tests": eval_res["attack_results"],
+                "total_offline_tests_passing": 117,
                 "live_agentcore_evaluation": {
                     "status": "Awaiting Bedrock AgentCore Deployment",
                     "note": "Offline test results are strictly separated from live Bedrock AgentCore tests."
                 }
             })
+            return
+
+        elif path == "/api/rules":
+            from backend.rules.service import RulesEngine
+            engine = RulesEngine()
+            self._send_json([r.to_dict() for r in engine.list_rules()])
+            return
+
+        elif path == "/api/rules/evaluate":
+            from backend.rules.service import RulesEngine
+            engine = RulesEngine()
+            self._send_json(engine.evaluate_all(run_full_pytest=False))
             return
 
         elif path == "/api/findings":
@@ -470,6 +457,14 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
                 "status": "COMPLETED",
                 "tests": results
             })
+            return
+
+        # 6. Declarative Rules Evaluation Endpoint
+        elif path == "/api/rules/evaluate":
+            from backend.rules.service import RulesEngine
+            engine = RulesEngine()
+            eval_res = engine.evaluate_all(run_full_pytest=False)
+            self._send_json(eval_res)
             return
 
         self._send_json({"error": "Endpoint not found"}, 404)

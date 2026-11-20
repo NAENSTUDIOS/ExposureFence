@@ -136,15 +136,30 @@ async function loadSummary() {
 
 async function loadScorecard() {
   try {
-    const res = await fetch('/api/scorecard');
-    const data = await res.json();
+    const [scoreRes, rulesRes] = await Promise.all([
+      fetch('/api/scorecard'),
+      fetch('/api/rules')
+    ]);
+    const data = await scoreRes.json();
+    const allRules = await rulesRes.json();
+
+    const rulesMetadata = {};
+    const resourceRules = [];
+    allRules.forEach(r => {
+      rulesMetadata[r.id] = r;
+      if (r.rule_type === 'RESOURCE_COMPLIANCE') {
+        resourceRules.push(r);
+      }
+    });
 
     const rulesContainer = document.getElementById('rulesList');
     rulesContainer.innerHTML = '';
     for (const [rId, status] of Object.entries(data.offline_rules)) {
+      const meta = rulesMetadata[rId] || {};
+      const desc = meta.description ? `<span style="color:var(--text-secondary); margin-left:8px; font-weight:normal;">— ${meta.description}</span>` : '';
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex; justify-content:space-between; padding:8px 12px; background:var(--bg-secondary); border-radius:6px;';
-      row.innerHTML = `<strong>${rId}</strong> <span class="badge ${status === 'PASS' ? 'badge-green' : 'badge-red'}">${status}</span>`;
+      row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-secondary); border-radius:6px;';
+      row.innerHTML = `<div><strong>${rId}</strong>${desc}</div> <span class="badge ${status === 'PASS' ? 'badge-green' : 'badge-red'}">${status}</span>`;
       rulesContainer.appendChild(row);
     }
 
@@ -152,9 +167,27 @@ async function loadScorecard() {
     attacksContainer.innerHTML = '';
     for (const [tId, status] of Object.entries(data.offline_attack_tests)) {
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex; justify-content:space-between; padding:8px 12px; background:var(--bg-secondary); border-radius:6px;';
+      row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--bg-secondary); border-radius:6px;';
       row.innerHTML = `<strong>${tId}</strong> <span class="badge ${status === 'PASS' ? 'badge-green' : 'badge-red'}">${status}</span>`;
       attacksContainer.appendChild(row);
+    }
+
+    const resourceRulesContainer = document.getElementById('resourceRulesList');
+    if (resourceRulesContainer) {
+      resourceRulesContainer.innerHTML = '';
+      resourceRules.forEach(r => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--bg-secondary); border-radius:6px; border-left:3px solid var(--accent-cyan);';
+        row.innerHTML = `
+          <div>
+            <strong>${r.id}</strong> <span class="badge badge-${r.severity === 'CRITICAL' ? 'red' : 'amber'}" style="margin-left:6px; font-size:10px;">${r.severity}</span>
+            <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${r.description}</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Target: <code>${r.target_resource_type || 'N/A'}</code> | Layer: ${r.enforcement_layer}</div>
+          </div>
+          <span class="badge badge-green">ACTIVE IN ENGINE</span>
+        `;
+        resourceRulesContainer.appendChild(row);
+      });
     }
   } catch (err) {
     console.error('Scorecard load error:', err);

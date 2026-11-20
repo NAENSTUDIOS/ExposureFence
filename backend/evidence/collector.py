@@ -204,6 +204,14 @@ def collect_from_mock_security_groups(fixture_path: str = "mock_data/security_gr
     return records
 
 
+def collect_all_mock_evidence() -> List[EvidenceRecord]:
+    """Collects mock evidence from all registered synthetic fixtures."""
+    all_records: List[EvidenceRecord] = []
+    all_records.extend(collect_from_mock_s3())
+    all_records.extend(collect_from_mock_security_groups())
+    return all_records
+
+
 def collect_from_aws_s3(
     bucket_name: str,
     session=None,

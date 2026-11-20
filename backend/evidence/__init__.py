@@ -12,6 +12,7 @@ from backend.evidence.canonicalization import (
     normalize_for_canonicalization,
 )
 from backend.evidence.collector import (
+    collect_all_mock_evidence,
     collect_from_aws_ec2,
     collect_from_aws_iam,
     collect_from_aws_s3,
