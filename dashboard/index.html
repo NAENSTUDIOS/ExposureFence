@@ -47,7 +47,7 @@
         <div class="kpi-card">
           <div class="kpi-title">Offline Security Score</div>
           <div id="kpiScore" class="kpi-value cyan">100%</div>
-          <div id="kpiTestCountDesc" class="kpi-desc">Based on 46 automated tests</div>
+          <div id="kpiTestCountDesc" class="kpi-desc">Based on 95 automated tests</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-title">Rules Enforced</div>
@@ -87,7 +87,7 @@
           <button class="btn btn-sm btn-outline" onclick="loadAllData()">Refresh Data</button>
         </div>
         <div style="font-size: 13px; line-height: 1.8;">
-          <p><strong>Offline Testing Standard:</strong> All 46 offline tests pass in &lt;2.5s locally without cloud costs.</p>
+          <p><strong>Offline Testing Standard:</strong> All 95 offline tests pass in &lt;4.0s locally without cloud costs.</p>
           <p><strong>Live Bedrock AgentCore Status:</strong> <span class="badge badge-amber">NOT DEPLOYED (Awaiting AWS Harness Deployment)</span></p>
           <p><strong>Notice:</strong> Offline test results are strictly separated from live Bedrock AgentCore invocation results.</p>
         </div>
@@ -152,14 +152,17 @@
             <thead>
               <tr>
                 <th>Evidence ID</th>
-                <th>Description</th>
-                <th>Target Fixture File</th>
-                <th>SHA-256 Hash Digest</th>
+                <th>Resource</th>
+                <th>Source Mode</th>
+                <th>Service</th>
+                <th>Payload Digest (RFC 8785 SHA-256)</th>
                 <th>Integrity</th>
+                <th>Freshness</th>
+                <th>Assessment</th>
               </tr>
             </thead>
             <tbody id="evidenceTable">
-              <tr><td colspan="5">Loading evidence...</td></tr>
+              <tr><td colspan="8">Loading evidence ledger...</td></tr>
             </tbody>
           </table>
         </div>

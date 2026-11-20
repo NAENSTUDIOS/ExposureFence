@@ -10,6 +10,14 @@ def approve(proposal, session_id):
     if proposal.get("status") != "PENDING":
         raise ValueError("Invalid transition")
 
+    # Stale evidence and tampering verification
+    proposal_id = proposal.get("proposal_id")
+    if proposal_id:
+        from backend.evidence.relationships import verify_proposal_evidence_binding
+        can_proceed, reason, evidence = verify_proposal_evidence_binding(proposal_id)
+        if not can_proceed:
+            raise PermissionError(f"Approval blocked by Evidence Governance: {reason}")
+
     old_status = proposal["status"]
     proposal["status"] = "APPROVED"
 
@@ -76,6 +84,12 @@ def reject(proposal, session_id):
 def approve_by_id(proposal_id: str, session_id: str):
     if not valid_session(session_id):
         raise PermissionError("Invalid session")
+
+    # Stale evidence and tampering verification
+    from backend.evidence.relationships import verify_proposal_evidence_binding
+    can_proceed, reason, evidence = verify_proposal_evidence_binding(proposal_id)
+    if not can_proceed:
+        raise PermissionError(f"Approval blocked by Evidence Governance: {reason}")
 
     conn = get_connection()
     try:

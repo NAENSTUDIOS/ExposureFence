@@ -22,3 +22,7 @@ def initialize_db():
         )
         """)
     conn.close()
+
+    # Additive Phase 4 evidence tables and triggers
+    from backend.evidence.repository import initialize_evidence_tables
+    initialize_evidence_tables(DB_PATH)

@@ -197,16 +197,43 @@ async function loadEvidence() {
     const tbody = document.getElementById('evidenceTable');
     tbody.innerHTML = '';
 
+    if (!evidence || evidence.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8">No evidence records in ledger.</td></tr>';
+      return;
+    }
+
     evidence.forEach(e => {
       const tr = document.createElement('tr');
-      const isOk = e.integrity_status === 'VERIFIED_FIXTURE' || e.integrity_status === 'VERIFIED';
-      const badgeClass = isOk ? 'badge-green' : 'badge-red';
+      const isIntegOk = e.integrity_status === 'VERIFIED_FIXTURE' || e.integrity_status === 'VERIFIED';
+      const integBadgeClass = isIntegOk ? 'badge-green' : 'badge-red';
+
+      let freshBadgeClass = 'badge-cyan';
+      if (e.freshness_status === 'FRESH') freshBadgeClass = 'badge-green';
+      else if (e.freshness_status === 'STALE') freshBadgeClass = 'badge-amber';
+      else if (e.freshness_status === 'STATIC_FIXTURE') freshBadgeClass = 'badge-cyan';
+
+      let assessBadgeClass = 'badge-cyan';
+      let assessLabel = e.assessment_status || 'NOT_ASSESSED';
+      if (assessLabel === 'EXPOSURE_DETECTED') {
+        assessBadgeClass = 'badge-red';
+        assessLabel = 'EXPOSURE DETECTED';
+      } else if (assessLabel === 'NO_ISSUE_IDENTIFIED_IN_SUPPLIED_EVIDENCE') {
+        assessBadgeClass = 'badge-green';
+        assessLabel = 'NO ISSUE IDENTIFIED';
+      }
+
+      const modeClass = e.source_mode === 'AWS_READ_ONLY' ? 'badge-green' : 'badge-cyan';
+      const modeLabel = e.source_mode === 'AWS_READ_ONLY' ? 'AWS READ-ONLY' : 'MOCK EVIDENCE';
+
       tr.innerHTML = `
         <td><strong>${e.evidence_id}</strong></td>
-        <td>${e.description}</td>
-        <td><code>${e.fixture_file}</code></td>
-        <td><span class="code-cell">${e.sha256.substring(0, 16)}...</span></td>
-        <td><span class="badge ${badgeClass}">${e.integrity_status}</span></td>
+        <td><code>${e.resource_id || '-'}</code></td>
+        <td><span class="badge ${modeClass}">${modeLabel}</span></td>
+        <td><span class="badge">${(e.source_service || 's3').toUpperCase()}</span></td>
+        <td><span class="code-cell" title="${e.sha256}">${(e.sha256 || '').substring(0, 16)}...</span></td>
+        <td><span class="badge ${integBadgeClass}">${e.integrity_status}</span></td>
+        <td><span class="badge ${freshBadgeClass}">${e.freshness_status || 'STATIC_FIXTURE'}</span></td>
+        <td><span class="badge ${assessBadgeClass}">${assessLabel}</span></td>
       `;
       tbody.appendChild(tr);
     });

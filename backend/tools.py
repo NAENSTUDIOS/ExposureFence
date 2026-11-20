@@ -37,10 +37,12 @@ def propose_fix(finding_id: str):
         raise ValueError(f"Invalid finding ID: {finding_id}")
 
     mapping = APPROVED_REMEDIATIONS[finding_id]
+    evidence_id = "EV-S3-001" if "S3" in finding_id else "EV-SG-001"
     proposal = create_proposal(
         finding_id=finding_id,
         resource_id=mapping["resource_id"],
-        remediation=mapping["remediation"]
+        remediation=mapping["remediation"],
+        evidence_id=evidence_id
     )
 
     return {

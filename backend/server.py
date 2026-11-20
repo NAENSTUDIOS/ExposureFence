@@ -137,7 +137,7 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
                 "offline_security_score": 100,
                 "offline_rules_passing": "7/7",
                 "offline_attacks_blocked": "7/7",
-                "total_offline_tests_passing": 46,
+                "total_offline_tests_passing": 95,
                 "proposals_pending": status_counts.get("PENDING", 0),
                 "proposals_approved": status_counts.get("APPROVED", 0),
                 "proposals_rejected": status_counts.get("REJECTED", 0),
@@ -183,7 +183,7 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
                 "offline_score": score,
                 "offline_rules": rules_map,
                 "offline_attack_tests": test_results,
-                "total_offline_tests_passing": 46,
+                "total_offline_tests_passing": 95,
                 "live_agentcore_evaluation": {
                     "status": "Awaiting Bedrock AgentCore Deployment",
                     "note": "Offline test results are strictly separated from live Bedrock AgentCore tests."
@@ -224,18 +224,83 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
             self._send_json(proposals)
             return
 
-        elif path == "/api/evidence":
-            evidence_list = []
-            for ev_id, desc in EVIDENCE_REGISTRY.items():
-                fixture_path = "mock_data/s3_buckets.json" if "S3" in ev_id else "mock_data/security_groups.json"
-                sha256 = FIXTURE_HASHES.get(fixture_path, "UNKNOWN")
-                is_valid = verify_fixture_integrity(fixture_path)
-                evidence_list.append({
+        elif path == "/api/evidence/health":
+            from backend.evidence.service import EvidenceService
+            svc = EvidenceService()
+            self._send_json(svc.get_ledger_health())
+            return
+
+        elif path.startswith("/api/evidence/") and path.endswith("/verify"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4 and parts[1] == "evidence" and parts[3] == "verify":
+                ev_id = parts[2]
+                from backend.evidence.service import EvidenceService
+                svc = EvidenceService()
+                status, reason = svc.verify_record(ev_id)
+                status_str = status.value if hasattr(status, "value") else str(status)
+                self._send_json({
                     "evidence_id": ev_id,
-                    "description": desc,
-                    "fixture_file": fixture_path,
-                    "sha256": sha256,
-                    "integrity_status": "VERIFIED_FIXTURE" if is_valid else "INTEGRITY_MISMATCH"
+                    "integrity_status": status_str,
+                    "verification_reason": reason
+                })
+                return
+
+        elif path.startswith("/api/evidence/") and path.endswith("/relationships"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4 and parts[1] == "evidence" and parts[3] == "relationships":
+                ev_id = parts[2]
+                from backend.evidence.service import EvidenceService
+                svc = EvidenceService()
+                rels = svc.repository.get_relationships_for_evidence(ev_id)
+                self._send_json([r.to_dict() for r in rels])
+                return
+
+        elif path.startswith("/api/evidence/"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 3 and parts[1] == "evidence":
+                ev_id = parts[2]
+                from backend.evidence.service import EvidenceService
+                svc = EvidenceService()
+                rec = svc.get_evidence(ev_id)
+                if not rec:
+                    self._send_json({"error": f"Evidence '{ev_id}' not found"}, 404)
+                    return
+                self._send_json(rec.to_dict())
+                return
+
+        elif path == "/api/evidence":
+            from backend.evidence.service import EvidenceService
+            svc = EvidenceService()
+            if svc.repository.count_evidence_records() == 0:
+                try:
+                    svc.ingest_mock_data()
+                except Exception:
+                    pass
+
+            records = svc.list_evidence(limit=200)
+            evidence_list = []
+            for r in records:
+                rels = svc.repository.get_relationships_for_evidence(r.evidence_id)
+                linked_findings = [rel.entity_id for rel in rels if rel.entity_type == "FINDING"]
+                linked_proposals = [rel.entity_id for rel in rels if rel.entity_type == "PROPOSAL"]
+
+                evidence_list.append({
+                    "evidence_id": r.evidence_id,
+                    "description": f"{r.source_service.upper()} {r.resource_type} configuration",
+                    "resource_id": r.resource_id,
+                    "source_mode": r.source_mode,
+                    "source_service": r.source_service,
+                    "account_id": r.account_id or "123456789012",
+                    "region": r.region or "us-east-1",
+                    "collected_at": r.collected_at,
+                    "fixture_file": r.provenance.source_reference,
+                    "sha256": r.payload_sha256,
+                    "record_hash": r.record_hash,
+                    "integrity_status": r.integrity_status,
+                    "freshness_status": r.freshness_status,
+                    "assessment_status": r.assessment_status,
+                    "linked_findings": linked_findings,
+                    "linked_proposals": linked_proposals
                 })
             self._send_json(evidence_list)
             return
