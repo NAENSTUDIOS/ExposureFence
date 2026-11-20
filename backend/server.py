@@ -158,7 +158,7 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
                 "offline_score": eval_res["score_pct"],
                 "offline_rules": eval_res["rule_results"],
                 "offline_attack_tests": eval_res["attack_results"],
-                "total_offline_tests_passing": 117,
+                "total_offline_tests_passing": 139,
                 "live_agentcore_evaluation": {
                     "status": "Awaiting Bedrock AgentCore Deployment",
                     "note": "Offline test results are strictly separated from live Bedrock AgentCore tests."
@@ -303,12 +303,7 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
 
         elif path == "/api/agent/status":
             client = AgentCoreClient()
-            status = client.get_status()
-            status["model_id"] = os.getenv("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0")
-            status["guardrail_status"] = "NOT CONFIGURED (Optional in MVP)"
-            status["allowed_tools"] = ["read_mock_s3", "read_mock_security_groups", "propose_fix"]
-            status["runtime_available"] = status.get("harness_deployed", False)
-            self._send_json(status)
+            self._send_json(client.get_status())
             return
 
         self._send_json({"error": "Endpoint not found"}, 404)

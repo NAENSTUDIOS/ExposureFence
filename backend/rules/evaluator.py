@@ -107,7 +107,12 @@ def evaluate_resource_rule(rule: Rule, evidence: Any) -> RuleEvaluationResult:
             )
 
     # Convert evidence to dict if it's an EvidenceRecord
-    evidence_dict = evidence.to_dict() if hasattr(evidence, "to_dict") else evidence
+    evidence_dict = evidence.to_dict() if hasattr(evidence, "to_dict") else dict(evidence)
+    if "payload" not in evidence_dict:
+        evidence_dict["payload"] = {
+            "raw_evidence": evidence_dict.get("raw_evidence", {}),
+            "normalized_evidence": evidence_dict.get("normalized_evidence", {})
+        }
     evidence_id = None
     if hasattr(evidence, "evidence_id"):
         evidence_id = evidence.evidence_id

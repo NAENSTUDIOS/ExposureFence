@@ -431,14 +431,17 @@ async function loadAgentCoreStatus() {
     const statusMsg = document.getElementById('agentStatusMessage');
 
     if (statusBadge) {
-      if (data.harness_deployed) {
-        statusBadge.textContent = 'DEPLOYED & READY';
+      if (data.harness_status === 'MOCKED_LOCAL') {
+        statusBadge.textContent = 'MOCKED AGENTCORE STREAM';
+        statusBadge.className = 'badge badge-cyan';
+      } else if (data.harness_deployed) {
+        statusBadge.textContent = 'AWS AGENTCORE DEPLOYED';
         statusBadge.className = 'badge badge-green';
       } else if (data.aws_credentials_present) {
-        statusBadge.textContent = 'CONNECTED (HARNESS NOT CREATED)';
+        statusBadge.textContent = 'AWS AGENTCORE NOT DEPLOYED';
         statusBadge.className = 'badge badge-amber';
       } else {
-        statusBadge.textContent = 'OFFLINE / NO AWS ACCESS';
+        statusBadge.textContent = 'LOCAL MOCK ENGINE';
         statusBadge.className = 'badge badge-amber';
       }
     }

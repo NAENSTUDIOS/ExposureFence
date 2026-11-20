@@ -33,25 +33,30 @@ User / Security Officer
        ▼ (Bound strictly to 127.0.0.1:8000 via ThreadingHTTPServer)
 [ Local Python Backend Server ] (backend/server.py)
        │
-       ▼ (boto3: bedrock-agentcore Converse Streaming)
+       ▼ (boto3: bedrock-agentcore Converse Streaming / Offline Mock Engine)
 [ Amazon Bedrock AgentCore Managed Harness ] (ExposureFenceHarness)
        │
-       ├─► [ Amazon Bedrock Foundation Model ] (Claude 3.5 Sonnet v2)
+       ├─► [ Amazon Bedrock Foundation Model ] (Amazon Nova Lite v1:0)
        │
        ▼ (stream: toolUse events intercepted)
 [ 12-Step Inline Tool Dispatcher ] (agent/agentcore_client.py)
        │
-       ▼ (Strict 3-Tool Allowlist)
+       ▼ (Strict 3-Tool Allowlist & Parameter Sanitization)
 [ Server-Side Dispatcher ] (backend/dispatcher.py)
-       ├── 1. read_mock_s3 ──────────► [ Fixture Hash Integrity ] (backend/integrity.py)
-       ├── 2. read_mock_security_groups ──► [ SHA-256 Digest Check ] (mock_data/*.json)
-       └── 3. propose_fix ───────────► [ Proposal Engine (PENDING) ] (backend/proposals.py)
+       ├── 1. read_mock_s3 ──────────► [ Phase 4 Evidence Ledger & SEC-S3-001 Rule ]
+       ├── 2. read_mock_security_groups ──► [ Phase 4 Evidence Ledger & SEC-EC2-001 Rule ]
+       └── 3. propose_fix ───────────► [ Evidence Integrity, Freshness & Rule Evaluator ]
                                                      │
                                                      ▼
-                                     [ SQLite Database (WAL Mode) ] (exposurefence.db)
+                                     [ Phase 5 YAML Rules Engine ] (rules/rules.yaml)
+                                                     │
+                                                     ▼
+                                     [ SQLite Proposal Queue (PENDING) ] (exposurefence.db)
+                                       (Bound: evidence_id, payload_digest, rule_digest)
                                                      │
                                                      ▼ (Out-of-band human decision)
                                      [ Human Approval Workflow ] (backend/approvals.py)
+                                       (TTL Expiration & Cryptographic Re-Verification)
                                                      │
                                                      ▼
                                      [ Tamper-Evident Audit Log ] (audit.jsonl)
@@ -78,13 +83,15 @@ Codified declaratively in `rules/rules.yaml`:
 
 ## 4. The Three Approved Inline Tools
 
-The managed harness explicitly restricts `allowedTools` to these three inline functions:
+The managed harness explicitly restricts `allowedTools` to these three inline functions, each deeply integrated with the Phase 4 Evidence Ledger and Phase 5 YAML Rules Engine:
 
-1. **`read_mock_s3`**: Reads approved synthetic S3 bucket configurations. Verifies SHA-256 fixture integrity before parsing.
-2. **`read_mock_security_groups`**: Reads approved synthetic EC2 security-group ingress rules.
-3. **`propose_fix`**: Submits a deterministic remediation proposal for a validated finding (e.g. `F-S3-001`, `F-SG-001`). The model cannot control arbitrary commands; remediation actions are bound to pre-vetted templates.
+1. **`read_mock_s3`**: Reads approved synthetic S3 bucket configurations, synchronizes with the Evidence Ledger, verifies RFC 8785 canonical SHA-256 digests, and executes declarative rule `SEC-S3-001`.
+2. **`read_mock_security_groups`**: Reads approved synthetic EC2 security-group ingress rules, flags public administrative ports (`0.0.0.0/0` on 22/3389), records evidence provenance, and executes rule `SEC-EC2-001`.
+3. **`propose_fix`**: Submits a deterministic remediation proposal for a validated finding (e.g. `F-S3-001`, `F-SG-001`). Requires verified, fresh evidence in the Phase 4 Ledger and confirms that the bound rule evaluated to `FAIL`. Binds `evidence_id`, `evidence_payload_digest`, `rule_set_digest`, and a 24-hour expiration TTL.
 
 All built-in AgentCore capabilities (shell, code interpreter, browser, filesystem writes) are explicitly disabled.
+
+See [docs/AGENT_TOOL_CONTRACTS.md](file:///c:/Users/nasir/ExposureFence/docs/AGENT_TOOL_CONTRACTS.md) for complete parameter and response schemas.
 
 ---
 
@@ -136,8 +143,8 @@ Console admin credentials:
 
 ## 7. Automated Testing Suite
 
-### 1. Offline Verification Suite (46 Tests)
-Runs in <2.5 seconds locally without incurring any cloud costs:
+### 1. Offline Verification Suite (139 Tests)
+Runs in <5 seconds locally without incurring any cloud costs:
 ```bash
 python -m pytest tests/offline backend/test_database.py -v
 ```
@@ -167,12 +174,18 @@ T05 PASS
 T06 PASS
 T07 PASS
 
-Total Tests Executed: 46
+Total Tests Executed: 139
 Final Security Score: 100%
 ```
 
-### 3. Live Bedrock AgentCore Testing Suite
-Tests the deployed Bedrock AgentCore harness against the 7 adversarial attack vectors:
+### 3. Agent Integration & Boundary Suite (22 Tests)
+Tests the Amazon Bedrock AgentCore inline tool handoff loop, input/output ceilings, prompt injection mitigations, and deep evidence binding:
+```bash
+python -m pytest tests/offline/test_agent_integration.py -v
+```
+
+### 4. Live Bedrock AgentCore Testing Suite
+Tests the deployed Bedrock AgentCore harness against live AWS infrastructure when credentials and promotional credits are verified:
 ```bash
 python -m pytest tests/live -v
 ```
