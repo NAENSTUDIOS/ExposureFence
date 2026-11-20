@@ -20,6 +20,7 @@ ALLOWED_TRANSITIONS: Dict[ProposalLifecycleState, Set[ProposalLifecycleState]] =
     },
     ProposalLifecycleState.APPROVED: {
         ProposalLifecycleState.READY_FOR_EXECUTION,
+        ProposalLifecycleState.EXECUTING,
         ProposalLifecycleState.REVOKED,
         ProposalLifecycleState.INVALIDATED,
         ProposalLifecycleState.EXPIRED
@@ -33,7 +34,9 @@ ALLOWED_TRANSITIONS: Dict[ProposalLifecycleState, Set[ProposalLifecycleState]] =
         ProposalLifecycleState.EXECUTION_FAILED
     },
     ProposalLifecycleState.EXECUTED: {
-        ProposalLifecycleState.VERIFICATION_PENDING
+        ProposalLifecycleState.VERIFICATION_PENDING,
+        ProposalLifecycleState.VERIFIED,
+        ProposalLifecycleState.VERIFICATION_FAILED
     },
     ProposalLifecycleState.VERIFICATION_PENDING: {
         ProposalLifecycleState.VERIFIED,
@@ -91,5 +94,9 @@ class RemediationStateMachine:
         if target_state == ProposalLifecycleState.APPROVED:
             if caller_role.upper() not in ("APPROVER", "ADMINISTRATOR", "ADMIN"):
                 raise PermissionError("Unauthorized: Role 'APPROVER' or 'ADMINISTRATOR' required to approve proposals.")
+
+        if target_state in (ProposalLifecycleState.READY_FOR_EXECUTION, ProposalLifecycleState.EXECUTING, ProposalLifecycleState.EXECUTED):
+            if caller_role.upper() not in ("ADMINISTRATOR", "ADMIN"):
+                raise PermissionError(f"Unauthorized: Role 'ADMINISTRATOR' required to execute remediation. Role '{caller_role}' denied.")
 
         return target_state

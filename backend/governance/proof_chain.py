@@ -146,16 +146,31 @@ class ProofChainService:
         chain_id: str,
         approver: str,
         caller_role: str,
-        expires_at: str
+        expires_at: str,
+        session_id: Optional[str] = None
     ) -> ProofChainRecord:
         """
-        Steps 14–15: Authenticated human authorization and expiration binding.
+        Steps 14–15: Authenticated human authorization, role verification, and expiration binding.
+        Enforces that approval can only occur from PENDING state and requires verified caller role.
         """
         record = self.get_chain(chain_id)
         if not record:
             raise ValueError(f"Proof chain '{chain_id}' not found.")
 
-        # State transition check
+        # Finding 1 & 2: Check current state
+        if record.lifecycle_state != ProposalLifecycleState.PENDING:
+            raise ValueError(f"Invalid state transition: Cannot approve proof chain in state '{record.lifecycle_state.value}'. Must be PENDING.")
+
+        # Finding 2: Enforce trusted session boundary if session_id is provided
+        if session_id:
+            from backend.session_store import valid_session, get_session
+            if not valid_session(session_id):
+                raise PermissionError("Authentication required: Invalid or expired approver session.")
+            session_data = get_session(session_id)
+            if session_data.get("username") != approver:
+                raise PermissionError(f"Approver identity mismatch: Session user '{session_data.get('username')}' does not match requested approver '{approver}'.")
+
+        # State transition check (enforces caller_role != ai_agent and caller_role in APPROVER, ADMINISTRATOR)
         RemediationStateMachine.transition(
             current_state=record.lifecycle_state,
             target_state=ProposalLifecycleState.APPROVED,
@@ -178,6 +193,7 @@ class ProofChainService:
                 {
                     "chain_id": chain_id,
                     "approver": approver,
+                    "caller_role": caller_role,
                     "expires_at": expires_at,
                     "plan_digest": record.remediation_plan_digest
                 }
@@ -191,16 +207,31 @@ class ProofChainService:
         self,
         chain_id: str,
         current_evidence_digest: str,
-        post_execution_state: Dict[str, Any],
+        post_execution_state: Optional[Dict[str, Any]] = None,
         caller_role: str = "ADMINISTRATOR"
     ) -> ProofChainRecord:
         """
         Steps 16–20: Pre-execution revalidation, simulated execution,
         independent post-action verification, audit emission, and dossier sealing.
+        Enforces that execution requires current APPROVED state and verified ADMINISTRATOR role.
         """
         record = self.get_chain(chain_id)
         if not record:
             raise ValueError(f"Proof chain '{chain_id}' not found.")
+
+        # Finding 1: Enforce current APPROVED state before execution
+        if record.lifecycle_state != ProposalLifecycleState.APPROVED:
+            raise PermissionError(
+                f"Unauthorized Execution: Cannot execute proposal in state '{record.lifecycle_state.value}'. "
+                f"Proposal must be in '{ProposalLifecycleState.APPROVED.value}' state before execution."
+            )
+
+        # Finding 1: Enforce caller_role authorization via State Machine and RBAC
+        RemediationStateMachine.transition(
+            current_state=record.lifecycle_state,
+            target_state=ProposalLifecycleState.EXECUTING,
+            caller_role=caller_role
+        )
 
         # Step 15: Check expiration
         if record.approval_expires_at:
@@ -230,12 +261,13 @@ class ProofChainService:
         record.execution_status = "SIMULATED_SUCCESS_ZERO_MUTATION"
 
         # Step 18: Independent post-action verification (Scenario 6)
-        # Infer action type from rule/resource
+        # Finding 3: If post_execution_state is None, verifier queries ground-truth directly
         action_type = "enable_s3_block_public_access" if "s3" in record.resource_arn else "revoke_security_group_ingress"
         is_verified, reason, details = IndependentPostActionVerifier.verify_remediation(
             resource_arn=record.resource_arn,
             action_type=action_type,
-            post_execution_state=post_execution_state
+            post_execution_state=post_execution_state,
+            db_path=self.db_path
         )
 
         if is_verified:

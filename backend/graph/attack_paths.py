@@ -23,10 +23,14 @@ class AttackPathEngine:
     def find_all_attack_paths(
         self,
         start_node_id: Optional[str] = None,
-        max_depth: int = 8
+        max_depth: int = 8,
+        max_paths: int = 50,
+        resource_budget: int = 1000
     ) -> List[AttackPath]:
         """
         Discovers all attack paths from public entry points to sensitive resources.
+        Enforces explicit max_depth, max_paths limit, and resource_budget to prevent
+        exponential path explosion or denial-of-service on dense/adversarial graphs.
         """
         # Determine starting nodes
         if start_node_id:
@@ -48,11 +52,22 @@ class AttackPathEngine:
             if not s_node:
                 continue
 
+            if len(discovered_paths) >= max_paths:
+                break
+
             # BFS queue stores (current_node_id, [visited_node_ids], [edges_traversed])
             queue = deque([(s_node.id, [s_node.id], [])])
-            visited_in_path: Set[str] = set()
+            traversals = 0
 
             while queue:
+                if len(discovered_paths) >= max_paths:
+                    break
+
+                traversals += 1
+                if traversals > resource_budget:
+                    # Resource budget exhausted; break to protect engine availability
+                    break
+
                 curr_id, node_path, edge_path = queue.popleft()
 
                 if len(node_path) > max_depth:

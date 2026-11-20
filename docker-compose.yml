@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  exposurefence:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: exposurefence-core
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - EXPOSUREFENCE_DATA_MODE=mock
+      - EXPOSUREFENCE_DB_PATH=/app/exposurefence.db
+      - EXPOSUREFENCE_AUDIT_PATH=/app/audit.jsonl
+      - AWS_DEFAULT_REGION=us-east-1
+      - ZERO_COST_ENFORCED=true
+    volumes:
+      # Persistent SQLite proposal and evidence storage
+      - ./exposurefence.db:/app/exposurefence.db
+      # Persistent tamper-evident cryptographic audit ledger
+      - ./audit.jsonl:/app/audit.jsonl
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M

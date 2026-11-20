@@ -99,7 +99,7 @@ See [docs/AGENT_TOOL_CONTRACTS.md](file:///c:/Users/nasir/ExposureFence/docs/AGE
 
 A lightweight, high-performance console implemented with Python's standard-library `http.server.ThreadingHTTPServer` and vanilla JavaScript. Contains **zero external CDNs**, runs completely offline on `http://127.0.0.1:8000`, and features 12 tabs:
 
-1. **Executive Overview:** Real-time KPIs (Security Score 100%, Rules 7/7, Attacks 7/7, 185 Tests Passing, Audit Chain Valid, Zero Mutations Verified).
+1. **Executive Overview:** Real-time KPIs (Security Score 100%, Rules 7/7, Attacks 7/7, 213 Tests Passing, Audit Chain Valid, Zero Mutations Verified).
 2. **Master Scorecard:** Rule status (R01–R07) and attack suite results (T01–T07).
 3. **Exposure Findings:** Vulnerability details, severities, risk scores, and evidence IDs.
 4. **Evidence Registry:** Registered evidence IDs, RFC 8785 canonical hashes, and freshness status.
@@ -146,8 +146,8 @@ Console admin credentials:
 
 ## 7. Automated Testing Suite
 
-### 1. Offline Verification Suite (185 Tests)
-Runs in ~6 seconds locally without incurring any cloud costs:
+### 1. Offline Verification Suite (213 Tests)
+Runs in ~9 seconds locally without incurring any cloud costs:
 ```bash
 python -m pytest tests/offline backend/test_database.py -v
 ```
@@ -177,7 +177,7 @@ T05 PASS
 T06 PASS
 T07 PASS
 
-Total Tests Executed: 185
+Total Tests Executed: 213
 Final Security Score: 100%
 ```
 

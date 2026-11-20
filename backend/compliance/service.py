@@ -34,18 +34,48 @@ class ComplianceService:
             framework_summary[fw]["total_controls"] += 1
 
             target_srv = ctrl.get("target_service", "all")
-            # If target service has active findings, control fails
             is_failed = False
             violating_findings = []
 
             for f in findings_list:
                 if f.status.value != "ACTIVE":
                     continue
-                if target_srv == "all" or target_srv == f.service.lower():
-                    # Check if finding title or tags match control
-                    if ctrl["control_id"] in str(f.compliance_tags) or target_srv == f.service.lower():
-                        is_failed = True
-                        violating_findings.append(f.finding_id)
+
+                # Finding 4 Fix: Target-specific matching rather than coarse service-level matching
+                matches_control = False
+
+                # 1. Exact control ID match in compliance_tags
+                if ctrl["control_id"] in getattr(f, "compliance_tags", []):
+                    matches_control = True
+
+                # 2. Mapped related rule match in compliance_tags
+                elif any(r in getattr(f, "compliance_tags", []) for r in ctrl.get("related_rules", [])):
+                    matches_control = True
+
+                # 3. Contextual finding match for target service
+                elif target_srv == "all" or target_srv == f.service.lower():
+                    title_l = (f.title or "").lower()
+                    desc_l = (f.description or "").lower()
+                    ctrl_title_l = ctrl["title"].lower()
+
+                    if "block public access" in ctrl_title_l and ("public" in title_l or "block public" in desc_l):
+                        matches_control = True
+                    elif ("ssh" in ctrl_title_l or "22" in ctrl["title"]) and ("22" in title_l or "ssh" in title_l or "22" in desc_l):
+                        matches_control = True
+                    elif ("rdp" in ctrl_title_l or "3389" in ctrl["title"]) and ("3389" in title_l or "rdp" in title_l or "3389" in desc_l):
+                        matches_control = True
+                    elif ("administrative" in ctrl_title_l or "full '*:*'" in ctrl["title"]) and ("administrator" in title_l or "wildcard" in title_l or "*:*" in desc_l):
+                        matches_control = True
+                    elif ("least privilege" in ctrl_title_l or "access permissions" in ctrl_title_l) and ("privilege" in title_l or "admin" in title_l):
+                        matches_control = True
+                    elif ("network" in ctrl_title_l or "perimeter" in ctrl_title_l) and ("ingress" in title_l or "0.0.0.0/0" in desc_l):
+                        matches_control = True
+                    elif ("storage" in ctrl_title_l or "data-at-rest" in ctrl_title_l) and ("s3" in title_l or "bucket" in title_l):
+                        matches_control = True
+
+                if matches_control:
+                    is_failed = True
+                    violating_findings.append(f.finding_id)
 
             if is_failed:
                 framework_summary[fw]["failed_controls"] += 1

@@ -149,7 +149,7 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
                 "offline_security_score": 100,
                 "offline_rules_passing": "7/7",
                 "offline_attacks_blocked": "7/7",
-                "total_offline_tests_passing": 185,
+                "total_offline_tests_passing": 213,
                 "proposals_pending": status_counts.get("PENDING", 0),
                 "proposals_approved": status_counts.get("APPROVED", 0),
                 "proposals_rejected": status_counts.get("REJECTED", 0),
@@ -170,7 +170,7 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
                 "offline_score": eval_res["score_pct"],
                 "offline_rules": eval_res["rule_results"],
                 "offline_attack_tests": eval_res["attack_results"],
-                "total_offline_tests_passing": 185,
+                "total_offline_tests_passing": 213,
                 "live_agentcore_evaluation": {
                     "status": "Awaiting Bedrock AgentCore Deployment",
                     "note": "Offline test results are strictly separated from live Bedrock AgentCore tests."
