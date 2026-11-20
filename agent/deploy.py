@@ -19,7 +19,8 @@ SYSTEM_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "system_prompt.md")
 STATE_FILE_PATH = os.path.join(os.path.dirname(__file__), "harness_state.json")
 
 HARNESS_NAME = "ExposureFenceHarness"
-MODEL_ID = "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
+# Active low-cost model supporting ConverseStream and tool calling (avoids EOL Claude 3.5 Sonnet v2)
+MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0")
 
 # Approved inline tools matching the ExposureFence security kernel
 INLINE_TOOLS = [

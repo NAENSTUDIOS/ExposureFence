@@ -244,7 +244,7 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
         elif path == "/api/agent/status":
             client = AgentCoreClient()
             status = client.get_status()
-            status["model_id"] = "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
+            status["model_id"] = os.getenv("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0")
             status["guardrail_status"] = "exposurefence-guardrail (DRAFT / Optional)"
             status["allowed_tools"] = ["read_mock_s3", "read_mock_security_groups", "propose_fix"]
             status["runtime_available"] = status.get("harness_deployed", False)

@@ -342,6 +342,9 @@ async function loadAgentCoreStatus() {
     const harnessEl = document.getElementById('agentHarnessArn');
     if (harnessEl) harnessEl.textContent = data.harness_arn || 'NOT_CONFIGURED';
 
+    const modelEl = document.getElementById('agentModelBadge');
+    if (modelEl && data.model_id) modelEl.textContent = data.model_id;
+
     const statusBadge = document.getElementById('agentRuntimeStatus');
     const statusMsg = document.getElementById('agentStatusMessage');
 
