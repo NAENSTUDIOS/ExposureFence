@@ -1,0 +1,57 @@
+rules:
+
+  - id: R01
+    description: Mock data only
+    allowed_action: Read mock fixtures
+    forbidden_action: Read AWS resources
+    enforcement_layer: Application Boundary
+    test_id: T01
+    proof: Fixture hash validation
+
+  - id: R02
+    description: No cloud mutations
+    allowed_action: Analyze
+    forbidden_action: Modify AWS resources
+    enforcement_layer: Tool Surface
+    test_id: T02
+    proof: Mutation count equals zero
+
+  - id: R03
+    description: Three tool limit
+    allowed_action: Approved tools only
+    forbidden_action: Unknown tools
+    enforcement_layer: Dispatcher
+    test_id: T03
+    proof: Executed tool logs
+
+  - id: R04
+    description: Proposal only
+    allowed_action: Create pending proposal
+    forbidden_action: Execute fix
+    enforcement_layer: Proposal Service
+    test_id: T04
+    proof: Proposal records
+
+  - id: R05
+    description: Separate approval
+    allowed_action: Authenticated approval
+    forbidden_action: Chat approval
+    enforcement_layer: Authentication
+    test_id: T05
+    proof: Audit logs
+
+  - id: R06
+    description: Untrusted fixture content
+    allowed_action: Read data
+    forbidden_action: Execute embedded instructions
+    enforcement_layer: Validation
+    test_id: T06
+    proof: Execution logs
+
+  - id: R07
+    description: Evidence required
+    allowed_action: Evidence-backed findings
+    forbidden_action: Unsupported finding
+    enforcement_layer: Scoring Engine
+    test_id: T07
+    proof: Evidence hashes

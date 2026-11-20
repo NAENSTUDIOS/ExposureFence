@@ -1,0 +1,18 @@
+[
+  {
+    "sg_id": "sg-001",
+    "protocol": "tcp",
+    "port": 22,
+    "cidr": "0.0.0.0/0",
+    "exposure_finding": "SSH Open",
+    "evidence_id": "EV-SG-001"
+  },
+  {
+    "sg_id": "sg-002",
+    "protocol": "tcp",
+    "port": 443,
+    "cidr": "10.0.0.0/16",
+    "exposure_finding": "None",
+    "evidence_id": "EV-SG-002"
+  }
+]

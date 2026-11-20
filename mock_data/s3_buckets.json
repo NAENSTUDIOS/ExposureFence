@@ -1,0 +1,14 @@
+[
+  {
+    "resource_id": "bucket-public-001",
+    "public_access": true,
+    "policy_finding": "PublicRead",
+    "evidence_id": "EV-S3-001"
+  },
+  {
+    "resource_id": "bucket-private-001",
+    "public_access": false,
+    "policy_finding": "None",
+    "evidence_id": "EV-S3-002"
+  }
+]
