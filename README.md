@@ -97,16 +97,20 @@ See [docs/AGENT_TOOL_CONTRACTS.md](file:///c:/Users/nasir/ExposureFence/docs/AGE
 
 ## 5. Security Operations Console (Local Dashboard)
 
-A lightweight, high-performance console implemented with Python's standard-library `http.server.ThreadingHTTPServer` and vanilla JavaScript. Contains **zero external CDNs**, runs completely offline on `http://127.0.0.1:8000`, and features 8 tabs:
+A lightweight, high-performance console implemented with Python's standard-library `http.server.ThreadingHTTPServer` and vanilla JavaScript. Contains **zero external CDNs**, runs completely offline on `http://127.0.0.1:8000`, and features 12 tabs:
 
-1. **Executive Overview:** Real-time KPIs (Security Score 100%, Rules 7/7, Attacks 7/7, Audit Chain Valid, Zero Mutations Verified).
+1. **Executive Overview:** Real-time KPIs (Security Score 100%, Rules 7/7, Attacks 7/7, 185 Tests Passing, Audit Chain Valid, Zero Mutations Verified).
 2. **Master Scorecard:** Rule status (R01–R07) and attack suite results (T01–T07).
 3. **Exposure Findings:** Vulnerability details, severities, risk scores, and evidence IDs.
-4. **Evidence Registry:** Registered evidence IDs and SHA-256 cryptographic digests.
+4. **Evidence Registry:** Registered evidence IDs, RFC 8785 canonical hashes, and freshness status.
 5. **Proposal Governance:** Real-time SQLite review queue with out-of-band "Approve" and "Reject" actions.
 6. **Audit Timeline:** Append-only SHA-256 hash-chained event trail.
 7. **Attack Center:** Matrix of all 7 blocked adversarial attacks.
 8. **AgentCore Live Console:** Direct telemetry of AWS region, caller identity, harness configuration, interactive agent chat, and live test runner.
+9. **Multi-Source Intelligence:** Unified canonical findings correlated across AWS Native Connectors, Security Hub, Config, and Prowler.
+10. **Cloud Asset Graph:** Deterministic multi-step attack-path discovery (BFS) and blast-radius choke-point analysis.
+11. **Proof Chain Governance:** 20-step evidence-to-action proof chains, pre-execution drift revalidation, and sealed Merkle dossiers.
+12. **Compliance Frameworks:** Real-time continuous compliance posture mapped across CIS AWS v3.0, NIST CSF 2.0, MITRE ATT&CK Cloud, and OWASP LLM 2025.
 
 ---
 
@@ -114,8 +118,7 @@ A lightweight, high-performance console implemented with Python's standard-libra
 
 ### Prerequisites
 - Python 3.10+ (tested on Python 3.14 / 3.15)
-- AWS CLI v2 configured with an AWS account
-- Dependencies: `boto3`, `pytest`, `bcrypt`
+- Dependencies: `boto3`, `pytest`, `bcrypt`, `flake8`, `bandit`, `pip-audit`
 
 ### Installation
 ```bash
@@ -143,8 +146,8 @@ Console admin credentials:
 
 ## 7. Automated Testing Suite
 
-### 1. Offline Verification Suite (139 Tests)
-Runs in <5 seconds locally without incurring any cloud costs:
+### 1. Offline Verification Suite (185 Tests)
+Runs in ~6 seconds locally without incurring any cloud costs:
 ```bash
 python -m pytest tests/offline backend/test_database.py -v
 ```
@@ -174,14 +177,14 @@ T05 PASS
 T06 PASS
 T07 PASS
 
-Total Tests Executed: 139
+Total Tests Executed: 185
 Final Security Score: 100%
 ```
 
-### 3. Agent Integration & Boundary Suite (22 Tests)
-Tests the Amazon Bedrock AgentCore inline tool handoff loop, input/output ceilings, prompt injection mitigations, and deep evidence binding:
+### 3. Attack-Path, Risk & Proof-Chain Scenarios
+Validates all 6 end-to-end integration scenarios (multi-hop traversal, evidence tampering detection, prompt injection boundary containment, pre-execution drift revalidation, risk acceptance zeroing, and independent post-action verification):
 ```bash
-python -m pytest tests/offline/test_agent_integration.py -v
+python -m pytest tests/offline/test_integration_scenarios.py -v
 ```
 
 ### 4. Live Bedrock AgentCore Testing Suite

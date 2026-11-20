@@ -3,6 +3,7 @@ import io
 import json
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
@@ -19,6 +20,17 @@ from backend.tools import read_mock_s3, read_mock_security_groups
 from scoring.evidence import EVIDENCE_REGISTRY
 from tests.offline import test_attack_suite
 from agent.agentcore_client import AgentCoreClient
+from backend.compliance.service import ComplianceService
+from backend.governance.proof_chain import ProofChainService
+from backend.graph.attack_paths import AttackPathEngine
+from backend.graph.blast_radius import BlastRadiusEngine
+from backend.graph.engine import ResourceGraph
+from backend.graph.visualizer import GraphVisualizer
+from backend.intelligence.service import MultiSourceIntelligenceService
+from backend.observability.health import check_system_health
+from backend.observability.metrics import collect_system_metrics
+from backend.rbac.models import RBACService
+from backend.risk.engine import ContextualRiskEngine
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -137,7 +149,7 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
                 "offline_security_score": 100,
                 "offline_rules_passing": "7/7",
                 "offline_attacks_blocked": "7/7",
-                "total_offline_tests_passing": 95,
+                "total_offline_tests_passing": 185,
                 "proposals_pending": status_counts.get("PENDING", 0),
                 "proposals_approved": status_counts.get("APPROVED", 0),
                 "proposals_rejected": status_counts.get("REJECTED", 0),
@@ -158,7 +170,7 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
                 "offline_score": eval_res["score_pct"],
                 "offline_rules": eval_res["rule_results"],
                 "offline_attack_tests": eval_res["attack_results"],
-                "total_offline_tests_passing": 139,
+                "total_offline_tests_passing": 185,
                 "live_agentcore_evaluation": {
                     "status": "Awaiting Bedrock AgentCore Deployment",
                     "note": "Offline test results are strictly separated from live Bedrock AgentCore tests."
@@ -304,6 +316,71 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
         elif path == "/api/agent/status":
             client = AgentCoreClient()
             self._send_json(client.get_status())
+            return
+
+        # Multi-Source Intelligence Endpoints
+        elif path == "/api/intelligence/findings":
+            svc = MultiSourceIntelligenceService()
+            findings = svc.list_findings()
+            if not findings:
+                findings = svc.ingest_all_sources()
+            self._send_json([f.to_dict() for f in findings])
+            return
+
+        elif path == "/api/intelligence/inventory":
+            svc = MultiSourceIntelligenceService()
+            assets = svc.inventory.list_assets()
+            self._send_json([a.to_dict() for a in assets])
+            return
+
+        # Cloud Asset Graph Endpoints
+        elif path == "/api/graph/topology":
+            graph = ResourceGraph.build_default_topology()
+            elements = GraphVisualizer.to_cytoscape_elements(graph)
+            self._send_json(elements)
+            return
+
+        elif path == "/api/graph/attack_paths":
+            graph = ResourceGraph.build_default_topology()
+            engine = AttackPathEngine(graph)
+            paths = engine.find_all_attack_paths()
+            self._send_json([p.to_dict() for p in paths])
+            return
+
+        elif path == "/api/graph/blast_radius":
+            from urllib.parse import parse_qs
+            qs = parse_qs(parsed.query)
+            root_id = qs.get("root_id", ["i-0fedcba9876543210"])[0]
+            graph = ResourceGraph.build_default_topology()
+            engine = BlastRadiusEngine(graph)
+            res = engine.calculate_blast_radius(root_id)
+            self._send_json(res.to_dict())
+            return
+
+        # Compliance Framework Summary Endpoint
+        elif path == "/api/compliance/summary":
+            intel_svc = MultiSourceIntelligenceService()
+            findings = intel_svc.list_findings()
+            if not findings:
+                findings = intel_svc.ingest_all_sources()
+            report = ComplianceService.evaluate_compliance(findings=findings)
+            self._send_json(report)
+            return
+
+        # Governance & Proof Chain Endpoints
+        elif path == "/api/governance/proof_chains":
+            pc_svc = ProofChainService()
+            chains = pc_svc.list_chains()
+            self._send_json([c.to_dict() for c in chains])
+            return
+
+        # Operational Probes
+        elif path == "/api/health":
+            self._send_json(check_system_health())
+            return
+
+        elif path == "/api/metrics":
+            self._send_json(collect_system_metrics())
             return
 
         self._send_json({"error": "Endpoint not found"}, 404)
@@ -460,6 +537,85 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
             engine = RulesEngine()
             eval_res = engine.evaluate_all(run_full_pytest=False)
             self._send_json(eval_res)
+            return
+
+        # 7. Proof Chain Governance Endpoints
+        elif path == "/api/governance/proof_chains" and self.command == "POST":
+            pc_svc = ProofChainService()
+            chain = pc_svc.create_investigation_chain(
+                finding_id=payload.get("finding_id", "F-001"),
+                resource_arn=payload.get("resource_arn", "arn:aws:s3:::default"),
+                evidence_id=payload.get("evidence_id", "EV-001"),
+                evidence_digest=payload.get("evidence_digest", "hash"),
+                rule_id=payload.get("rule_id", "SEC-S3-001"),
+                rule_version=payload.get("rule_version", "1.0.0"),
+                rule_set_digest=payload.get("rule_set_digest", "rules_hash"),
+                risk_score=float(payload.get("risk_score", 80.0)),
+                risk_policy_version=payload.get("risk_policy_version", "2.0.0"),
+                remediation_action=payload.get("remediation_action", "enable_s3_block_public_access"),
+                parameters=payload.get("parameters", {}),
+                attack_path_id=payload.get("attack_path_id")
+            )
+            self._send_json(chain.to_dict(), status=201)
+            return
+
+        elif path.startswith("/api/governance/proof_chains/") and path.endswith("/approve"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 5 and parts[3] == "proof_chains":
+                chain_id = parts[4]
+                session_id, err = self._validate_auth_and_csrf()
+                if err:
+                    self._send_json({"error": err}, 403)
+                    return
+                pc_svc = ProofChainService()
+                session = get_session(session_id)
+                approver = session.get("username", "admin")
+                expires_at = payload.get("expires_at") or (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+                try:
+                    res = pc_svc.authorize_approval(chain_id, approver=approver, caller_role="APPROVER", expires_at=expires_at)
+                    self._send_json(res.to_dict())
+                except Exception as e:
+                    self._send_json({"error": str(e)}, 400)
+                return
+
+        elif path.startswith("/api/governance/proof_chains/") and path.endswith("/execute"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 5 and parts[3] == "proof_chains":
+                chain_id = parts[4]
+                session_id, err = self._validate_auth_and_csrf()
+                if err:
+                    self._send_json({"error": err}, 403)
+                    return
+                pc_svc = ProofChainService()
+                curr_digest = payload.get("current_evidence_digest", "")
+                post_state = payload.get("post_execution_state", {})
+                try:
+                    res = pc_svc.execute_and_verify(chain_id, current_evidence_digest=curr_digest, post_execution_state=post_state)
+                    self._send_json(res.to_dict())
+                except Exception as e:
+                    self._send_json({"error": str(e)}, 400)
+                return
+
+        # 8. Risk Acceptance Creation Endpoint
+        elif path == "/api/risk/acceptances" and self.command == "POST":
+            session_id, err = self._validate_auth_and_csrf()
+            if err:
+                self._send_json({"error": err}, 403)
+                return
+            session = get_session(session_id)
+            approver = session.get("username", "admin")
+            risk_engine = ContextualRiskEngine()
+            try:
+                rec = risk_engine.acceptance_service.create_acceptance(
+                    finding_id=payload.get("finding_id"),
+                    resource_arn=payload.get("resource_arn"),
+                    justification=payload.get("justification"),
+                    approver=approver,
+                    expires_at=payload.get("expires_at")
+                )
+                self._send_json(rec.to_dict(), status=201)
+            except Exception as e:
+                self._send_json({"error": str(e)}, 400)
             return
 
         self._send_json({"error": "Endpoint not found"}, 404)

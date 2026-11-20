@@ -1,0 +1,77 @@
+name: ExposureFence DevSecOps & Security Assurance CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+permissions:
+  contents: read
+
+jobs:
+  security-and-verification:
+    name: Security Tests, Invariant Verification & SAST
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Pinned Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Syntax & Lint Gate (Flake8)
+        run: |
+          # Stop build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,__pycache__
+
+      - name: SAST Security Vulnerability Scan (Bandit)
+        run: |
+          # Scan for Python security vulnerabilities (skips test assert warnings)
+          bandit -r backend/ agent/ scoring/ security/ -ll -ii
+
+      - name: Secret Scanning Check
+        run: |
+          # Ensure no live AWS access keys or hardcoded secrets are committed
+          python -c "
+          import re, sys, os
+          pattern = re.compile(r'AKIA[0-9A-Z]{16}')
+          found = False
+          for root, _, files in os.walk('.'):
+              if '.git' in root or '.venv' in root: continue
+              for f in files:
+                  if f.endswith(('.py', '.json', '.md', '.yaml', '.yml')):
+                      p = os.path.join(root, f)
+                      with open(p, 'r', encoding='utf-8', errors='ignore') as fp:
+                          for line in fp:
+                              if pattern.search(line) and 'AKIA...' not in line:
+                                  print(f'Secret detected in {p}: {line.strip()}')
+                                  found = True
+          if found: sys.exit(1)
+          print('Secret scan passed: zero credentials detected.')
+          "
+
+      - name: Offline Test Suite Execution (100% Pass Required)
+        run: |
+          pytest tests/offline backend/test_database.py -v
+
+      - name: Security Scorecard Invariant Verification (R01-R07 & T01-T07)
+        run: |
+          python -m backend.evaluate
+
+      - name: Zero-Cost & Zero-Mutation Invariant Enforcement
+        run: |
+          python -c "
+          from backend.audit import verify_zero_mutations, verify_audit_hash_chain
+          assert verify_audit_hash_chain() is True, 'Audit hash chain broken!'
+          assert verify_zero_mutations() is True, 'Cloud mutation detected!'
+          print('Zero-mutation and audit integrity invariants verified.')
+          "

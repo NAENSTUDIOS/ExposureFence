@@ -17,6 +17,11 @@ function switchTab(tabName) {
       btn.classList.add('active');
     }
   });
+
+  if (tabName === 'intelligence') loadIntelligence();
+  else if (tabName === 'graph') loadGraph();
+  else if (tabName === 'proofchain') loadProofChains();
+  else if (tabName === 'compliance') loadCompliance();
 }
 
 // Authentication Helpers
@@ -582,6 +587,214 @@ async function runLiveAdversarialSuite() {
   }
 }
 
+// 9. Multi-Source Intelligence
+async function loadIntelligence() {
+  try {
+    const res = await fetch('/api/intelligence/findings');
+    const findings = await res.json();
+    const tbody = document.getElementById('intelligenceTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!findings || findings.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No canonical findings ingested.</td></tr>';
+      return;
+    }
+
+    findings.forEach(f => {
+      const tr = document.createElement('tr');
+      let sevClass = 'badge-cyan';
+      if (f.severity === 'CRITICAL') sevClass = 'badge-red';
+      else if (f.severity === 'HIGH') sevClass = 'badge-amber';
+      else if (f.severity === 'MEDIUM') sevClass = 'badge-cyan';
+      else if (f.severity === 'LOW') sevClass = 'badge-info';
+
+      let statusClass = f.status === 'ACTIVE' ? 'badge-amber' : (f.status === 'RESOLVED' ? 'badge-green' : 'badge-cyan');
+
+      tr.innerHTML = `
+        <td><strong>${f.finding_id}</strong></td>
+        <td><span class="badge badge-purple">${f.source}</span></td>
+        <td><code>${f.resource_arn || '-'}</code></td>
+        <td><strong>${f.title}</strong></td>
+        <td><span class="badge ${sevClass}">${f.severity}</span></td>
+        <td><span class="badge ${statusClass}">${f.status}</span></td>
+        <td><code>${f.correlation_id ? f.correlation_id.substring(0, 16) + '...' : '-'}</code></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error('Failed to load intelligence:', err);
+  }
+}
+
+// 10. Cloud Asset Graph & Attack Paths
+async function loadGraph() {
+  try {
+    const [pathsRes, blastRes] = await Promise.all([
+      fetch('/api/graph/attack_paths'),
+      fetch('/api/graph/blast_radius')
+    ]);
+    const paths = await pathsRes.json();
+    const blast = await blastRes.json();
+
+    const pathsContainer = document.getElementById('attackPathsList');
+    if (pathsContainer) {
+      pathsContainer.innerHTML = '';
+      if (!paths || paths.length === 0) {
+        pathsContainer.innerHTML = '<p style="color:var(--text-muted);">No critical attack paths discovered in topology.</p>';
+      } else {
+        paths.forEach(p => {
+          const card = document.createElement('div');
+          card.className = 'attack-path-card';
+
+          const stepsHtml = (p.node_sequence || []).map((node, i) => {
+            const edge = (p.edge_sequence && p.edge_sequence[i]) ? `<span class="arrow-divider">--[${p.edge_sequence[i]}]--></span>` : '';
+            return `<span class="path-step-badge">${node}</span> ${edge}`;
+          }).join(' ');
+
+          card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <div>
+                <strong>${p.path_id}</strong>
+                <span class="badge badge-red" style="margin-left:8px;">Risk: ${p.total_risk_score}</span>
+                <span class="badge badge-cyan" style="margin-left:4px;">Confidence: ${(p.confidence * 100).toFixed(0)}%</span>
+              </div>
+              <span class="badge badge-amber">CRITICAL PATH</span>
+            </div>
+            <div style="margin-bottom:10px; line-height:2.2; font-size:12px;">
+              ${stepsHtml}
+            </div>
+            <div style="font-size:12px; color:var(--accent-cyan); background:rgba(6,182,212,0.08); padding:8px 12px; border-radius:4px; border-left:3px solid var(--accent-cyan);">
+              <strong>Recommended Control:</strong> ${p.recommended_control || 'Isolate workload and revoke excessive IAM permissions.'}
+            </div>
+          `;
+          pathsContainer.appendChild(card);
+        });
+      }
+    }
+
+    const blastContainer = document.getElementById('blastRadiusDetails');
+    if (blastContainer && blast) {
+      blastContainer.innerHTML = `
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-top:8px;">
+          <div class="blast-metric-box">
+            <div style="font-size:11px; color:var(--text-muted);">Root Workload Target</div>
+            <code style="color:var(--accent-cyan); font-weight:bold;">${blast.root_resource_id || 'i-0fedcba9876543210'}</code>
+          </div>
+          <div class="blast-metric-box">
+            <div style="font-size:11px; color:var(--text-muted);">Downstream Reachable Nodes</div>
+            <div style="font-size:18px; font-weight:bold; color:var(--accent-amber);">${blast.reachable_nodes_count || 0} Assets</div>
+          </div>
+          <div class="blast-metric-box">
+            <div style="font-size:11px; color:var(--text-muted);">Sensitive Targets in Radius</div>
+            <div style="font-size:18px; font-weight:bold; color:var(--accent-red);">${blast.sensitive_resource_count || 0} High-Value Assets</div>
+          </div>
+          <div class="blast-metric-box">
+            <div style="font-size:11px; color:var(--text-muted);">Critical Path Containment</div>
+            <span class="badge ${blast.critical_path_flag ? 'badge-red' : 'badge-green'}">${blast.critical_path_flag ? 'EXPOSURE PRESENT' : 'CONTAINED'}</span>
+          </div>
+        </div>
+        <div style="margin-top:14px; font-size:12px;">
+          <strong>Reachable Sensitive Resources:</strong>
+          <div style="margin-top:4px;">
+            ${(blast.sensitive_resource_ids || []).map(id => `<span class="badge badge-purple" style="margin-right:6px;">${id}</span>`).join('') || '<span style="color:var(--text-muted);">None</span>'}
+          </div>
+        </div>
+      `;
+    }
+  } catch (err) {
+    console.error('Failed to load graph:', err);
+  }
+}
+
+// 11. Evidence-to-Action Proof Chains
+async function loadProofChains() {
+  try {
+    const res = await fetch('/api/governance/proof_chains');
+    const chains = await res.json();
+    const tbody = document.getElementById('proofChainsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!chains || chains.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No proof chains created yet.</td></tr>';
+      return;
+    }
+
+    chains.forEach(c => {
+      const tr = document.createElement('tr');
+      let stateBadge = '<span class="badge badge-cyan">PENDING</span>';
+      if (c.lifecycle_state === 'APPROVED') stateBadge = '<span class="badge badge-green">APPROVED</span>';
+      else if (c.lifecycle_state === 'EXECUTED') stateBadge = '<span class="badge badge-purple">EXECUTED</span>';
+      else if (c.lifecycle_state === 'VERIFIED') stateBadge = '<span class="badge badge-green">VERIFIED</span>';
+      else if (c.lifecycle_state === 'REJECTED') stateBadge = '<span class="badge badge-red">REJECTED</span>';
+
+      const rootHashDisplay = c.dossier_root_hash ? `${c.dossier_root_hash.substring(0, 16)}...` : '<span style="color:var(--text-muted);">In Assembly</span>';
+
+      tr.innerHTML = `
+        <td><strong>${c.chain_id}</strong></td>
+        <td><code>${c.resource_arn || '-'}</code></td>
+        <td><span class="badge badge-purple">${c.rule_id}</span></td>
+        <td><strong>${c.risk_score}</strong></td>
+        <td>${stateBadge}</td>
+        <td>${c.approver || '<span style="color:var(--text-muted);">Awaiting Auth</span>'}</td>
+        <td><span class="code-cell">${rootHashDisplay}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error('Failed to load proof chains:', err);
+  }
+}
+
+// 12. Security Framework Compliance Posture
+async function loadCompliance() {
+  try {
+    const res = await fetch('/api/compliance/summary');
+    const comp = await res.json();
+
+    const grid = document.getElementById('complianceCardsGrid');
+    if (grid && comp.frameworks) {
+      grid.innerHTML = '';
+      for (const [fwName, data] of Object.entries(comp.frameworks)) {
+        const card = document.createElement('div');
+        card.className = 'kpi-card';
+        card.innerHTML = `
+          <div class="kpi-title">${fwName}</div>
+          <div class="kpi-value" style="color:var(--accent-green);">${data.coverage_pct}%</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">
+            ${data.compliant} / ${data.total} Controls Compliant
+          </div>
+          <div class="progress-container">
+            <div class="progress-fill" style="width:${data.coverage_pct}%;"></div>
+          </div>
+        `;
+        grid.appendChild(card);
+      }
+    }
+
+    const list = document.getElementById('complianceControlsList');
+    if (list && comp.details) {
+      list.innerHTML = '';
+      comp.details.forEach(ctrl => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--bg-secondary); border-radius:6px; margin-bottom:8px; border-left:3px solid var(--accent-green);';
+        row.innerHTML = `
+          <div>
+            <strong>${ctrl.control_id}</strong> <span class="badge badge-purple" style="margin-left:6px; font-size:10px;">${ctrl.framework}</span>
+            <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;">${ctrl.title}</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Mapped Invariants: <code>${(ctrl.mapped_rules || []).join(', ')}</code></div>
+          </div>
+          <span class="badge ${ctrl.status === 'COMPLIANT' ? 'badge-green' : 'badge-red'}">${ctrl.status}</span>
+        `;
+        list.appendChild(row);
+      });
+    }
+  } catch (err) {
+    console.error('Failed to load compliance:', err);
+  }
+}
+
 async function loadAllData() {
   await checkAuth();
   await Promise.all([
@@ -591,7 +804,11 @@ async function loadAllData() {
     loadEvidence(),
     loadProposals(),
     loadAudit(),
-    loadAgentCoreStatus()
+    loadAgentCoreStatus(),
+    loadIntelligence(),
+    loadGraph(),
+    loadProofChains(),
+    loadCompliance()
   ]);
 }
 

@@ -1,0 +1,99 @@
+{
+  "Findings": [
+    {
+      "SchemaVersion": "2018-10-08",
+      "Id": "arn:aws:securityhub:us-east-1:123456789012:finding/s3-public-export-001",
+      "ProductArn": "arn:aws:securityhub:us-east-1::product/aws/securityhub",
+      "GeneratorId": "aws-foundational-security-best-practices/v/1.0.0/S3.1",
+      "AwsAccountId": "123456789012",
+      "Types": ["Software and Configuration Checks/AWS Security Best Practices"],
+      "FirstObservedAt": "2026-11-20T10:00:00Z",
+      "LastObservedAt": "2026-11-21T01:00:00Z",
+      "CreatedAt": "2026-11-20T10:00:00Z",
+      "UpdatedAt": "2026-11-21T01:00:00Z",
+      "Severity": {
+        "Label": "CRITICAL",
+        "Normalized": 90
+      },
+      "Title": "S3.1 S3 Block Public Access setting should be enabled",
+      "Description": "The S3 bucket corp-finance-public-export does not have Block Public Access enabled at the bucket level and contains public read grants.",
+      "Remediation": {
+        "Recommendation": {
+          "Text": "For information on how to configure Block Public Access, see the Amazon S3 Developer Guide.",
+          "Url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+        }
+      },
+      "ProductFields": {
+        "aws/securityhub/ProductName": "Security Hub",
+        "aws/securityhub/CompanyName": "AWS"
+      },
+      "Resources": [
+        {
+          "Type": "AwsS3Bucket",
+          "Id": "arn:aws:s3:::corp-finance-public-export",
+          "Partition": "aws",
+          "Region": "us-east-1",
+          "Details": {
+            "AwsS3Bucket": {
+              "Name": "corp-finance-public-export",
+              "OwnerId": "123456789012"
+            }
+          }
+        }
+      ],
+      "Compliance": {
+        "Status": "FAILED",
+        "RelatedRequirements": ["CIS AWS Foundations Benchmark v1.4.0/2.1.5"]
+      },
+      "RecordState": "ACTIVE",
+      "Workflow": {
+        "Status": "NEW"
+      }
+    },
+    {
+      "SchemaVersion": "2018-10-08",
+      "Id": "arn:aws:securityhub:us-east-1:123456789012:finding/ec2-sg-ssh-001",
+      "ProductArn": "arn:aws:securityhub:us-east-1::product/aws/securityhub",
+      "GeneratorId": "aws-foundational-security-best-practices/v/1.0.0/EC2.19",
+      "AwsAccountId": "123456789012",
+      "Types": ["Software and Configuration Checks/AWS Security Best Practices"],
+      "FirstObservedAt": "2026-11-20T11:00:00Z",
+      "LastObservedAt": "2026-11-21T01:00:00Z",
+      "CreatedAt": "2026-11-20T11:00:00Z",
+      "UpdatedAt": "2026-11-21T01:00:00Z",
+      "Severity": {
+        "Label": "HIGH",
+        "Normalized": 70
+      },
+      "Title": "EC2.19 Security groups should not allow unrestricted ingress to port 22",
+      "Description": "Security group sg-0123456789abcdef0 allows inbound traffic on port 22 from 0.0.0.0/0.",
+      "Remediation": {
+        "Recommendation": {
+          "Text": "Restrict port 22 ingress to authorized bastion hosts or corporate CIDR ranges."
+        }
+      },
+      "Resources": [
+        {
+          "Type": "AwsEc2SecurityGroup",
+          "Id": "arn:aws:ec2:us-east-1:123456789012:security-group/sg-0123456789abcdef0",
+          "Partition": "aws",
+          "Region": "us-east-1",
+          "Details": {
+            "AwsEc2SecurityGroup": {
+              "GroupId": "sg-0123456789abcdef0",
+              "GroupName": "launch-wizard-1"
+            }
+          }
+        }
+      ],
+      "Compliance": {
+        "Status": "FAILED",
+        "RelatedRequirements": ["CIS AWS Foundations Benchmark v1.4.0/5.2"]
+      },
+      "RecordState": "ACTIVE",
+      "Workflow": {
+        "Status": "NEW"
+      }
+    }
+  ]
+}

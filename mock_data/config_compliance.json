@@ -1,0 +1,49 @@
+{
+  "EvaluationResults": [
+    {
+      "EvaluationResultIdentifier": {
+        "EvaluationResultQualifier": {
+          "ConfigRuleName": "s3-bucket-public-read-prohibited",
+          "ResourceType": "AWS::S3::Bucket",
+          "ResourceId": "corp-finance-public-export"
+        },
+        "OrderingTimestamp": "2026-11-21T01:05:00Z"
+      },
+      "ComplianceType": "NON_COMPLIANT",
+      "ResultRecordedTime": "2026-11-21T01:06:00Z",
+      "ConfigRuleInvokedTime": "2026-11-21T01:05:30Z",
+      "Annotation": "The S3 bucket allows public read access through bucket ACL or policy.",
+      "ResultToken": "token-s3-eval-001"
+    },
+    {
+      "EvaluationResultIdentifier": {
+        "EvaluationResultQualifier": {
+          "ConfigRuleName": "restricted-ssh",
+          "ResourceType": "AWS::EC2::SecurityGroup",
+          "ResourceId": "sg-0123456789abcdef0"
+        },
+        "OrderingTimestamp": "2026-11-21T01:05:00Z"
+      },
+      "ComplianceType": "NON_COMPLIANT",
+      "ResultRecordedTime": "2026-11-21T01:06:00Z",
+      "ConfigRuleInvokedTime": "2026-11-21T01:05:30Z",
+      "Annotation": "Security group has inbound rule for port 22 with 0.0.0.0/0.",
+      "ResultToken": "token-sg-eval-002"
+    },
+    {
+      "EvaluationResultIdentifier": {
+        "EvaluationResultQualifier": {
+          "ConfigRuleName": "s3-bucket-public-write-prohibited",
+          "ResourceType": "AWS::S3::Bucket",
+          "ResourceId": "corp-internal-audit-archive"
+        },
+        "OrderingTimestamp": "2026-11-21T01:05:00Z"
+      },
+      "ComplianceType": "COMPLIANT",
+      "ResultRecordedTime": "2026-11-21T01:06:00Z",
+      "ConfigRuleInvokedTime": "2026-11-21T01:05:30Z",
+      "Annotation": "The S3 bucket does not allow public write.",
+      "ResultToken": "token-s3-eval-003"
+    }
+  ]
+}

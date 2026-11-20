@@ -36,6 +36,10 @@
     <button class="tab-btn" onclick="switchTab('timeline')">6. Audit Timeline</button>
     <button class="tab-btn" onclick="switchTab('attacks')">7. Attack Center</button>
     <button class="tab-btn" onclick="switchTab('agentcore')">8. AgentCore Console</button>
+    <button class="tab-btn" onclick="switchTab('intelligence')">9. Intelligence</button>
+    <button class="tab-btn" onclick="switchTab('graph')">10. Asset Graph</button>
+    <button class="tab-btn" onclick="switchTab('proofchain')">11. Proof Chain</button>
+    <button class="tab-btn" onclick="switchTab('compliance')">12. Compliance</button>
   </nav>
 
   <!-- Main Views Container -->
@@ -365,6 +369,102 @@
         <div id="liveSuiteOutput" style="font-size: 13px;">
           <p>Click "Run 8 Live Tests" to execute against the active Bedrock harness.</p>
         </div>
+      </div>
+    </section>
+
+    <!-- 9. MULTI-SOURCE INTELLIGENCE -->
+    <section id="tab-intelligence" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Canonical Cloud Security Intelligence (Multi-Source Ingestion)</div>
+          <button class="btn btn-sm btn-outline" onclick="loadIntelligence()">Refresh Intelligence</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+          Normalizes and correlates findings from AWS Native Connectors, AWS Security Hub, AWS Config, and Prowler.
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Finding ID</th>
+                <th>Source</th>
+                <th>Resource ARN</th>
+                <th>Title</th>
+                <th>Severity</th>
+                <th>Status</th>
+                <th>Correlation ID</th>
+              </tr>
+            </thead>
+            <tbody id="intelligenceTableBody">
+              <tr><td colspan="7" style="text-align:center;">Loading canonical findings...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. CLOUD ASSET GRAPH & ATTACK PATHS -->
+    <section id="tab-graph" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Deterministic Multi-Step Attack-Path Discovery</div>
+          <button class="btn btn-sm btn-outline" onclick="loadGraph()">Re-evaluate Graph</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+          Traverses cloud asset topology from public exposure points through intermediate workloads and IAM roles to sensitive targets.
+        </div>
+        <div id="attackPathsList" style="margin-bottom: 20px;"></div>
+
+        <div class="panel-header" style="margin-top: 24px;">
+          <div class="panel-title">Contextual Blast-Radius & Choke-Point Analysis</div>
+        </div>
+        <div id="blastRadiusDetails" style="font-size: 13px; line-height: 1.8;"></div>
+      </div>
+    </section>
+
+    <!-- 11. EVIDENCE-TO-ACTION PROOF CHAIN -->
+    <section id="tab-proofchain" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">20-Step Evidence-to-Action Proof Chains & Sealed Dossiers</div>
+          <button class="btn btn-sm btn-outline" onclick="loadProofChains()">Refresh Proof Chains</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+          Immutable cryptographic proof chains linking finding to evidence, YAML rule evaluation, contextual risk, human authorization, and post-action verification.
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Chain ID</th>
+                <th>Resource ARN</th>
+                <th>Rule ID</th>
+                <th>Risk Score</th>
+                <th>Lifecycle State</th>
+                <th>Approver</th>
+                <th>Dossier Root Hash</th>
+              </tr>
+            </thead>
+            <tbody id="proofChainsTableBody">
+              <tr><td colspan="7" style="text-align:center;">Loading proof chains...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. COMPLIANCE FRAMEWORK MATRIX -->
+    <section id="tab-compliance" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Real-Time Security Framework Compliance Posture</div>
+          <button class="btn btn-sm btn-outline" onclick="loadCompliance()">Refresh Compliance</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+          Continuous automated mapping against CIS AWS Foundations Benchmark, NIST CSF 2.0, MITRE ATT&CK Cloud, and OWASP Top 10 for LLM Applications.
+        </div>
+        <div id="complianceCardsGrid" class="grid-cards" style="margin-bottom: 24px;"></div>
+        <div id="complianceControlsList"></div>
       </div>
     </section>
 

@@ -63,22 +63,26 @@ The platform connects and integrates:
 
 ---
 
-## 3. Master 10-Phase Roadmap
+## 3. Master Platform Evolution Roadmap (Groups A–N)
 
-| Phase | Description | Status |
+| Feature Group | Description | Status |
 | :---: | :--- | :---: |
-| **Phase 1** | Security Operations Dashboard (8 responsive tabs, vanilla JS, zero CDNs) | **COMPLETE** |
-| **Phase 2** | REST API & Secure Session Management (Bcrypt auth, CSRF, safe SQLite WAL) | **COMPLETE** |
-| **Phase 3** | Read-Only AWS Connectors (S3, EC2, IAM inspection; zero-mutation invariant) | **COMPLETE** |
-| **Phase 4** | Evidence Engine with SHA-256 Verification & Unified Provenance Registry | **COMPLETE** |
-| **Phase 5** | YAML-Driven Declarative Security Rules Engine (`rules/rules.yaml`) | **COMPLETE** |
-| **Phase 6** | Amazon Bedrock Integration (ConverseStream API, active low-cost models) | **COMPLETE** |
-| **Phase 7** | Amazon Bedrock AgentCore Managed Harness (`ExposureFenceHarness`) | **COMPLETE** |
-| **Phase 8** | Complete Tool Integration, Dispatcher Governance & Proposal State Machine | **COMPLETE** |
-| **Phase 9** | Adversarial Attack Suite (Prompt injection, privilege escalation, fake approval) | **COMPLETE (22 offline tests, 139 total)** |
-| **Phase 10**| Production Deployment, Threat Modeling, Architecture Docs & Portfolio Assets | In Progress |
+| **Group A** | Multi-Source Security Intelligence (Security Hub, Config, Prowler, Native Connectors) | **COMPLETE** |
+| **Group B** | Cloud Asset Graph & Deterministic Attack-Path Engine (BFS, IAM Privilege Analyzer) | **COMPLETE** |
+| **Group C** | Contextual Risk Engine & Risk Acceptance Registry (RiskPolicyV1 & V2, Expirations) | **COMPLETE** |
+| **Group D** | Declarative YAML Rules Engine (Rules as Tests, RFC 8785 Hashing) | **COMPLETE** |
+| **Group E** | Evidence-to-Action Proof Chains & 14-State Machine (Drift Revalidation, Rollback Plans) | **COMPLETE** |
+| **Group F** | Amazon Bedrock AgentCore Integration (ConverseStream, 3 Inline Tools, Zero-Cost Safe) | **COMPLETE** |
+| **Group G** | Security Dispatcher & Boundary Hardening (3-Tool Limit, Parameter Sanitization) | **COMPLETE** |
+| **Group H** | Cryptographic Dossier Assembly & Tamper-Evident Audit Ledger (SHA-256 Merkle Seal) | **COMPLETE** |
+| **Group I** | Adversarial Verification Suite (T01–T07 Invariants, Boundary Containment) | **COMPLETE** |
+| **Group J** | Role-Based Access Control (RBAC: Investigator, Approver, Auditor, Admin) | **COMPLETE** |
+| **Group K** | Automated DevSecOps Pipeline & Supply-Chain Security (Flake8, Bandit, Pip-Audit) | **COMPLETE** |
+| **Group L** | Multi-Framework Compliance Matrix (CIS AWS v3.0, NIST CSF 2.0, MITRE, OWASP LLM) | **COMPLETE** |
+| **Group M** | Enterprise Security Operations Console (12 Responsive Tabs, Zero External CDNs) | **COMPLETE** |
+| **Group N** | Production Observability & Health Telemetry (/api/health, /api/metrics, Backups) | **COMPLETE** |
 
-*All phases must eventually be completed and integrated. No phase will be abandoned for temporary deadlines.*
+*All 14 Feature Groups and 185 automated tests are verified 100% passing without cloud dependencies.*
 
 ---
 

@@ -1,0 +1,57 @@
+[
+  {
+    "Status": "FAIL",
+    "Severity": "critical",
+    "CheckID": "s3_bucket_public_access",
+    "CheckTitle": "Ensure Amazon S3 Buckets Do Not Allow Public Access",
+    "ServiceName": "s3",
+    "SubServiceName": "",
+    "Region": "us-east-1",
+    "ResourceId": "corp-finance-public-export",
+    "ResourceArn": "arn:aws:s3:::corp-finance-public-export",
+    "ResourceTags": {
+      "Environment": "Production",
+      "Department": "Finance"
+    },
+    "Description": "Bucket corp-finance-public-export is publicly accessible to all internet users.",
+    "Risk": "Data breach, unauthorized data exposure, regulatory non-compliance.",
+    "Remediation": {
+      "Code": {
+        "CLI": "aws s3api put-public-access-block --bucket corp-finance-public-export --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+      },
+      "Recommendation": {
+        "Text": "Enable Block Public Access at the bucket level."
+      }
+    },
+    "Compliance": {
+      "CIS": ["2.1.5"],
+      "MITRE": ["T1530"]
+    }
+  },
+  {
+    "Status": "FAIL",
+    "Severity": "high",
+    "CheckID": "ec2_securitygroup_allow_ingress_from_internet_to_tcp_port_22",
+    "CheckTitle": "Ensure no security groups allow ingress from 0.0.0.0/0 to port 22",
+    "ServiceName": "ec2",
+    "SubServiceName": "securitygroup",
+    "Region": "us-east-1",
+    "ResourceId": "sg-0123456789abcdef0",
+    "ResourceArn": "arn:aws:ec2:us-east-1:123456789012:security-group/sg-0123456789abcdef0",
+    "ResourceTags": {
+      "Role": "BastionHost",
+      "ManagedBy": "Terraform"
+    },
+    "Description": "Security group sg-0123456789abcdef0 allows inbound traffic from 0.0.0.0/0 on port 22.",
+    "Risk": "Brute-force SSH attacks, unauthorized system compromise.",
+    "Remediation": {
+      "Recommendation": {
+        "Text": "Remove rule with CIDR 0.0.0.0/0 or restrict to VPN/Bastion IP."
+      }
+    },
+    "Compliance": {
+      "CIS": ["5.2"],
+      "MITRE": ["T1078.004"]
+    }
+  }
+]

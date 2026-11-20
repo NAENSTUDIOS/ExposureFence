@@ -367,3 +367,54 @@ pre, code {
   border-radius: 9999px;
   transition: width 0.3s ease;
 }
+
+/* Extended Badges & Components */
+.badge-purple {
+  background-color: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.badge-info {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.attack-path-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.attack-path-card:hover {
+  border-color: var(--accent-cyan);
+}
+
+.path-step-badge {
+  display: inline-block;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+}
+
+.arrow-divider {
+  color: var(--text-muted);
+  font-weight: bold;
+  font-size: 11px;
+  margin: 0 4px;
+}
+
+.blast-metric-box {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px;
+}

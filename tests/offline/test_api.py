@@ -74,3 +74,57 @@ def test_agentcore_client_status():
     assert "configured_region" in status
     assert "harness_arn" in status
     assert "aws_credentials_present" in status
+
+
+def test_api_new_endpoints_integration(tmp_path):
+    from backend.observability.health import check_system_health
+    from backend.observability.metrics import collect_system_metrics
+    from backend.intelligence.service import MultiSourceIntelligenceService
+    from backend.graph.engine import ResourceGraph
+    from backend.graph.visualizer import GraphVisualizer
+    from backend.compliance.service import ComplianceService
+    from backend.governance.proof_chain import ProofChainService
+
+    db_file = str(tmp_path / "api_test.db")
+
+    # Health & Metrics
+    health = check_system_health(db_path=db_file)
+    assert health["status"] in ("healthy", "degraded")
+    metrics = collect_system_metrics(db_path=db_file)
+    assert "security_metrics" in metrics
+
+    # Intelligence & Inventory
+    intel_svc = MultiSourceIntelligenceService(db_path=db_file)
+    findings = intel_svc.ingest_all_sources()
+    assert len(findings) >= 5
+    assets = intel_svc.inventory.list_assets()
+    assert len(assets) >= 2
+
+    # Graph & Topology
+    graph = ResourceGraph.build_default_topology()
+    cytoscape_elements = GraphVisualizer.to_cytoscape_elements(graph)
+    assert len(cytoscape_elements) >= 10
+
+    # Compliance
+    comp_report = ComplianceService.evaluate_compliance(findings=findings)
+    assert "CIS-AWS-v3.0" in comp_report
+    assert "NIST-CSF-2.0" in comp_report
+
+    # Proof Chain
+    pc_svc = ProofChainService(db_path=db_file)
+    chain = pc_svc.create_investigation_chain(
+        finding_id=findings[0].finding_id,
+        resource_arn=findings[0].resource_arn,
+        evidence_id="EV-TEST",
+        evidence_digest="hash_test",
+        rule_id="SEC-S3-001",
+        rule_version="1.0.0",
+        rule_set_digest="rules_hash",
+        risk_score=90.0,
+        risk_policy_version="2.0.0",
+        remediation_action="enable_s3_block_public_access",
+        parameters={"bucket_name": "test-bucket"}
+    )
+    assert chain.lifecycle_state.value == "PENDING"
+    chains = pc_svc.list_chains()
+    assert len(chains) == 1
