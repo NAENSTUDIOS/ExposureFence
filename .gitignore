@@ -17,3 +17,8 @@ dist/
 audit.jsonl
 
 coverage.xml
+
+# Developer temporary exports
+commits.txt
+project-tree.txt
+*harness_state.json

@@ -3,6 +3,8 @@ from backend.approvals import (
     reject
 )
 from backend.session_store import create_session
+from backend.proposals import create_proposal
+from backend.database import get_connection, initialize_db
 
 import pytest
 
@@ -63,14 +65,27 @@ def test_invalid_session_rejected():
         )
 
 
+def test_sqlite_approval_integration():
+    initialize_db()
+    session_id = create_session("admin")
 
-def test_invalid_session_rejected():
-    proposal = {
-        "status": "PENDING"
-    }
+    # 1. Create proposal in sqlite
+    proposal = create_proposal(
+        "F-SQLITE-001",
+        "sg-001",
+        "Restrict SSH to trusted CIDR"
+    )
+    proposal_id = proposal["proposal_id"]
+    assert proposal["status"] == "PENDING"
 
-    with pytest.raises(PermissionError):
-        approve(
-            proposal,
-            "fake-unauthenticated-session"
-        )
+    # 2. Approve proposal with valid session
+    approved = approve(proposal, session_id)
+    assert approved["status"] == "APPROVED"
+
+    # 3. Verify proposal state updated in sqlite
+    conn = get_connection()
+    row = conn.execute("SELECT status FROM proposals WHERE proposal_id = ?", (proposal_id,)).fetchone()
+    conn.close()
+
+    assert row is not None
+    assert row[0] == "APPROVED"

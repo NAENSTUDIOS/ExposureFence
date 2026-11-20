@@ -1,0 +1,47 @@
+{
+  "harnessName": "ExposureFenceHarness",
+  "description": "Amazon Bedrock AgentCore managed security harness with deterministic inline tools",
+  "version": "1.0.0",
+  "bedrockModelConfig": {
+    "modelId": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "maxTokens": 1000,
+    "temperature": 0.0,
+    "additionalParams": {
+      "guardrailConfig": {
+        "guardrailIdentifier": "exposurefence-guardrail",
+        "guardrailVersion": "DRAFT"
+      }
+    }
+  },
+  "runtimeConfig": {
+    "maxIterations": 3,
+    "invocationTimeoutSeconds": 60,
+    "idleRuntimeTimeoutSeconds": 300,
+    "enableCloudWatchTransactionSearch": false
+  },
+  "tools": [
+    {
+      "type": "inline_function",
+      "name": "read_mock_s3",
+      "description": "Read approved synthetic AWS S3 bucket configurations for security analysis. Returns resource ID, public access settings, policy findings, and evidence ID."
+    },
+    {
+      "type": "inline_function",
+      "name": "read_mock_security_groups",
+      "description": "Read approved synthetic AWS EC2 security-group ingress rules for security analysis. Returns security-group ID, protocol, port, CIDR, exposure finding, and evidence ID."
+    },
+    {
+      "type": "inline_function",
+      "name": "propose_fix",
+      "description": "Submit a safe remediation fix proposal for a validated security finding. Status will be PENDING human review."
+    }
+  ],
+  "governance": {
+    "wildcardTools": false,
+    "allowShell": false,
+    "allowFileWrite": false,
+    "allowCodeInterpreter": false,
+    "allowBrowser": false,
+    "allowSubagents": false
+  }
+}
