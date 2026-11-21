@@ -134,9 +134,22 @@ def run_demonstration():
     )
     print("  -> Authenticated Human Approver (secops_lead) authorized proposal.")
 
+    # Compliant post-execution state for successful verification demonstration
+    compliant_state = {
+        "block_public_access": {
+            "BlockPublicAcls": True,
+            "IgnorePublicAcls": True,
+            "BlockPublicPolicy": True,
+            "RestrictPublicBuckets": True,
+            "is_effective": True
+        },
+        "is_public_policy": False
+    }
+
     exec_res = pc_svc.execute_and_verify(
         chain_id=chain.chain_id,
         current_evidence_digest=ev_s3.payload_sha256,
+        post_execution_state=compliant_state,
         caller_role="ADMINISTRATOR"
     )
     print(f"  -> Pre-Execution Drift Revalidation: {exec_res.pre_execution_revalidation_status}")
@@ -147,10 +160,11 @@ def run_demonstration():
     verified, reason, details = IndependentPostActionVerifier.verify_remediation(
         resource_arn=resource_arn,
         action_type=remediation_action,
-        post_execution_state={"public_access_block_enabled": True}
+        post_execution_state=compliant_state
     )
-    print(f"  -> Ground-Truth Result: {verified} (Source: {details.get('source', 'INDEPENDENT_GROUND_TRUTH')})")
+    print(f"  -> Ground-Truth Result: {verified} (Source: {details.get('verification_source', 'INDEPENDENT_GROUND_TRUTH')})")
     print(f"  -> Verification Note: {reason}")
+    print(f"  -> Lifecycle State: {exec_res.lifecycle_state.value}")
 
     # Step 14: Cryptographic Evidence Dossier Assembly
     print("\n[Step 14] Assembling Cryptographic Evidence Dossier (Root SHA-256 Sealed)...")

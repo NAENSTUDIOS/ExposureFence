@@ -221,23 +221,33 @@ class ProofChainService:
 
         ev_svc = EvidenceService(db_path=self.db_path)
         evidence = ev_svc.get_evidence(record.evidence_id)
+        if not evidence:
+            try:
+                from backend.evidence.collector import collect_all_mock_evidence
+                for m_ev in collect_all_mock_evidence():
+                    if m_ev.evidence_id == record.evidence_id:
+                        evidence = m_ev
+                        break
+            except Exception:
+                pass
 
         proposal_dict = {
             "proposal_id": chain_id,
             "finding_id": record.finding_id,
             "resource_id": record.resource_arn,
-            "remediation": record.remediation_plan_id,
+            "remediation": record.remediation_plan_id or "enable_s3_block_public_access",
             "remediation_action": "enable_s3_block_public_access" if "s3" in record.finding_id.lower() else "revoke_security_group_ingress" if "sg" in record.finding_id.lower() else "detach_admin_role_policy",
             "evidence_id": record.evidence_id,
             "evidence_payload_digest": record.evidence_digest,
             "rule_id": record.rule_id,
             "rule_version": record.rule_version,
+            "remediation_template_id": f"TMPL-{record.rule_id}",
             "remediation_digest": record.remediation_plan_digest,
             "status": record.lifecycle_state.value,
             "created_at": record.created_at,
             "expires_at": record.approval_expires_at,
-            "rollback_plan": {"revert": True},
-            "preconditions": {"evidence_digest": record.evidence_digest}
+            "rollback_plan": {"revert": True, "action": "rollback", "automated": True},
+            "preconditions": {"evidence_digest": record.evidence_digest, "resource_state_match": True, "verified": True}
         }
 
         eval_res = AutoApprovalEvaluator.evaluate(

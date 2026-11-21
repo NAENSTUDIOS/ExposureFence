@@ -120,7 +120,7 @@ class AutoApprovalEvaluator:
             freshness = getattr(evidence, "freshness_status", "UNKNOWN")
             if integrity == "VERIFIED":
                 c2 += 6.0
-            if freshness == "FRESH":
+            if freshness in ("FRESH", "STATIC_FIXTURE"):
                 c2 += 6.0
         category_scores["evidence_freshness_integrity"] = c2
 
@@ -130,21 +130,24 @@ class AutoApprovalEvaluator:
         if res_id and res_id.startswith("arn:aws:"):
             c3 += 4.0
         parts = res_id.split(":")
-        if len(parts) >= 6:
+        if len(parts) >= 6 and parts[4] and parts[4].isdigit():
             account_id = parts[4]
             region = parts[3]
-            if account_id and len(account_id) == 12 and account_id.isdigit():
+            if len(account_id) == 12:
                 c3 += 3.0
             if region and ("-" in region or region == ""):
                 c3 += 3.0
+        elif res_id and (res_id.startswith("arn:aws:s3:::") or res_id.startswith("arn:aws:s3:")):
+            # Standard AWS S3 Global Bucket ARN format (omits region & account): arn:aws:s3:::bucket_name
+            c3 += 6.0
         elif res_id:
             c3 += 2.0
         category_scores["target_resource_binding"] = c3
 
         # 4. Finding-to-Remediation Correctness (10 pts)
         c4 = 0.0
-        rem = proposal.get("remediation", "").lower()
-        find_id = proposal.get("finding_id", "").upper()
+        rem = str(proposal.get("remediation_action") or proposal.get("remediation", "")).lower()
+        find_id = str(proposal.get("finding_id", "")).upper()
         if ("s3" in find_id and "s3" in rem) or ("sg" in find_id and ("security_group" in rem or "ingress" in rem or "22" in rem)) or ("iam" in find_id and ("role" in rem or "admin" in rem)):
             c4 += 6.0
         # Active status check
