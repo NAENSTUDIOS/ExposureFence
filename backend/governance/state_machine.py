@@ -15,10 +15,18 @@ ALLOWED_TRANSITIONS: Dict[ProposalLifecycleState, Set[ProposalLifecycleState]] =
     ProposalLifecycleState.DRAFT: {ProposalLifecycleState.PENDING},
     ProposalLifecycleState.PENDING: {
         ProposalLifecycleState.APPROVED,
+        ProposalLifecycleState.AUTO_APPROVED_CONDITIONAL,
         ProposalLifecycleState.REJECTED,
         ProposalLifecycleState.EXPIRED
     },
     ProposalLifecycleState.APPROVED: {
+        ProposalLifecycleState.READY_FOR_EXECUTION,
+        ProposalLifecycleState.EXECUTING,
+        ProposalLifecycleState.REVOKED,
+        ProposalLifecycleState.INVALIDATED,
+        ProposalLifecycleState.EXPIRED
+    },
+    ProposalLifecycleState.AUTO_APPROVED_CONDITIONAL: {
         ProposalLifecycleState.READY_FOR_EXECUTION,
         ProposalLifecycleState.EXECUTING,
         ProposalLifecycleState.REVOKED,
@@ -77,7 +85,7 @@ class RemediationStateMachine:
             raise ValueError(f"Invalid state transition: Cannot transition from {current_state.value} to {target_state.value}.")
 
         # Check expiration for approval and execution
-        if target_state in (ProposalLifecycleState.APPROVED, ProposalLifecycleState.READY_FOR_EXECUTION):
+        if target_state in (ProposalLifecycleState.APPROVED, ProposalLifecycleState.AUTO_APPROVED_CONDITIONAL, ProposalLifecycleState.READY_FOR_EXECUTION):
             if expires_at:
                 try:
                     clean = expires_at.replace("Z", "+00:00")
@@ -94,6 +102,12 @@ class RemediationStateMachine:
         if target_state == ProposalLifecycleState.APPROVED:
             if caller_role.upper() not in ("APPROVER", "ADMINISTRATOR", "ADMIN"):
                 raise PermissionError("Unauthorized: Role 'APPROVER' or 'ADMINISTRATOR' required to approve proposals.")
+
+        if target_state == ProposalLifecycleState.AUTO_APPROVED_CONDITIONAL:
+            if caller_role.upper() not in ("POLICY_ENGINE", "SYSTEM_GOVERNANCE", "AUTOMATED_POLICY"):
+                raise PermissionError(
+                    f"Unauthorized: Role 'POLICY_ENGINE' required for conditional auto-approval. Role '{caller_role}' denied."
+                )
 
         if target_state in (ProposalLifecycleState.READY_FOR_EXECUTION, ProposalLifecycleState.EXECUTING, ProposalLifecycleState.EXECUTED):
             if caller_role.upper() not in ("ADMINISTRATOR", "ADMIN"):

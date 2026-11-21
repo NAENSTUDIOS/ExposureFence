@@ -40,6 +40,7 @@
     <button class="tab-btn" onclick="switchTab('graph')">10. Asset Graph</button>
     <button class="tab-btn" onclick="switchTab('proofchain')">11. Proof Chain</button>
     <button class="tab-btn" onclick="switchTab('compliance')">12. Compliance</button>
+    <button class="tab-btn" onclick="switchTab('adaptive')">13. Adaptive Intelligence</button>
   </nav>
 
   <!-- Main Views Container -->
@@ -51,7 +52,7 @@
         <div class="kpi-card">
           <div class="kpi-title">Offline Security Score</div>
           <div id="kpiScore" class="kpi-value cyan">100%</div>
-          <div id="kpiTestCountDesc" class="kpi-desc">Based on 95 automated tests</div>
+          <div id="kpiTestCountDesc" class="kpi-desc">Based on 241 automated tests</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-title">Rules Enforced</div>
@@ -91,7 +92,7 @@
           <button class="btn btn-sm btn-outline" onclick="loadAllData()">Refresh Data</button>
         </div>
         <div style="font-size: 13px; line-height: 1.8;">
-          <p><strong>Offline Testing Standard:</strong> All 95 offline tests pass in &lt;4.0s locally without cloud costs.</p>
+          <p><strong>Offline Testing Standard:</strong> All 241 offline tests pass in &lt;10.0s locally without cloud costs.</p>
           <p><strong>Live Bedrock AgentCore Status:</strong> <span class="badge badge-amber">NOT DEPLOYED (Awaiting AWS Harness Deployment)</span></p>
           <p><strong>Notice:</strong> Offline test results are strictly separated from live Bedrock AgentCore invocation results.</p>
         </div>
@@ -465,6 +466,68 @@
         </div>
         <div id="complianceCardsGrid" class="grid-cards" style="margin-bottom: 24px;"></div>
         <div id="complianceControlsList"></div>
+      </div>
+    </section>
+
+    <!-- 13. ADAPTIVE INTELLIGENCE & AUTO-APPROVAL (ASIVE) -->
+    <section id="tab-adaptive" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Adaptive Security Intelligence & Verified Evolution Engine (ASIVE)</div>
+          <button class="btn btn-sm btn-outline" onclick="loadAdaptive()">Refresh Adaptive Data</button>
+        </div>
+        <div style="font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 20px;">
+          Autonomous threat observation, change detection, impact analysis, sandboxed candidate evaluation,
+          and versioned knowledge governance. Policy: <strong>AUTO_REMEDIATION_APPROVAL_V1 (Threshold &ge; 90.0%)</strong>.
+        </div>
+
+        <!-- 5 Cooperating Engines KPI Grid -->
+        <div class="grid-cards" style="margin-bottom: 24px;">
+          <div class="kpi-card">
+            <div class="kpi-title">Auto-Approval Threshold</div>
+            <div class="kpi-value cyan">&ge; 90.0%</div>
+            <div class="kpi-desc">10-Category Deterministic Rubric</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title">Mandatory Security Gates</div>
+            <div class="kpi-value green">8 GATES</div>
+            <div class="kpi-desc">Overrides Score on Any Failure</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title">Live Mutation Authority</div>
+            <div class="kpi-value green">ZERO</div>
+            <div class="kpi-desc">Simulated Remediation Only</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title">Multi-Cloud Readiness</div>
+            <div class="kpi-value purple">4 CLOUDS</div>
+            <div class="kpi-desc">AWS, Azure, GCP, Kubernetes</div>
+          </div>
+        </div>
+
+        <!-- Detected Changes & Impact -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+          <div>
+            <h4 style="margin-bottom: 12px; color: var(--accent-cyan);">Latest Observations & Threat Intelligence</h4>
+            <div id="adaptiveObservationsList" style="display: flex; flex-direction: column; gap: 8px;">Loading observations...</div>
+          </div>
+          <div>
+            <h4 style="margin-bottom: 12px; color: var(--accent-cyan);">Normalized Change Events (Deduplicated)</h4>
+            <div id="adaptiveChangesList" style="display: flex; flex-direction: column; gap: 8px;">Loading change events...</div>
+          </div>
+        </div>
+
+        <!-- Versioned Knowledge & Platform Health -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+          <div>
+            <h4 style="margin-bottom: 12px; color: var(--accent-cyan);">Versioned Security Knowledge Registry</h4>
+            <div id="adaptiveKnowledgeList" style="display: flex; flex-direction: column; gap: 8px;">Loading knowledge records...</div>
+          </div>
+          <div>
+            <h4 style="margin-bottom: 12px; color: var(--accent-cyan);">Platform Health & Controlled Self-Diagnostics</h4>
+            <div id="adaptiveHealthStatus" style="padding: 16px; background: var(--bg-secondary); border-radius: 6px; font-size: 13px; line-height: 1.8;">Loading health diagnostics...</div>
+          </div>
+        </div>
       </div>
     </section>
 

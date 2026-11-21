@@ -12,6 +12,11 @@ PROPOSAL_ADDITIONAL_COLUMNS = [
     ("remediation_digest", "TEXT"),
     ("created_at", "TEXT"),
     ("expires_at", "TEXT"),
+    ("auto_approval_score", "REAL"),
+    ("auto_approval_decision", "TEXT"),
+    ("auto_approval_policy", "TEXT"),
+    ("auto_approval_digest", "TEXT"),
+    ("auto_approval_timestamp", "TEXT"),
 ]
 
 _INITIALIZED_DBS = set()

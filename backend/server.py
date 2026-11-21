@@ -149,7 +149,7 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
                 "offline_security_score": 100,
                 "offline_rules_passing": "7/7",
                 "offline_attacks_blocked": "7/7",
-                "total_offline_tests_passing": 213,
+                "total_offline_tests_passing": 241,
                 "proposals_pending": status_counts.get("PENDING", 0),
                 "proposals_approved": status_counts.get("APPROVED", 0),
                 "proposals_rejected": status_counts.get("REJECTED", 0),
@@ -170,7 +170,7 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
                 "offline_score": eval_res["score_pct"],
                 "offline_rules": eval_res["rule_results"],
                 "offline_attack_tests": eval_res["attack_results"],
-                "total_offline_tests_passing": 213,
+                "total_offline_tests_passing": 241,
                 "live_agentcore_evaluation": {
                     "status": "Awaiting Bedrock AgentCore Deployment",
                     "note": "Offline test results are strictly separated from live Bedrock AgentCore tests."
@@ -374,6 +374,44 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
             self._send_json([c.to_dict() for c in chains])
             return
 
+        elif path == "/api/governance/auto-approval/policy":
+            from backend.governance.auto_approval import POLICY_VERSION, RUBRIC_VERSION, MINIMUM_SCORE
+            self._send_json({
+                "policy_version": POLICY_VERSION,
+                "rubric_version": RUBRIC_VERSION,
+                "minimum_score": MINIMUM_SCORE,
+                "decision_authority": f"policy:{POLICY_VERSION}",
+                "simulated_execution_only": True
+            })
+            return
+
+        # ASIVE Adaptive Intelligence Endpoints
+        elif path == "/api/adaptive/observations":
+            from backend.adaptive.observer import ContinuousObservationEngine
+            engine = ContinuousObservationEngine()
+            self._send_json([o.to_dict() for o in engine.list_observations()])
+            return
+
+        elif path == "/api/adaptive/changes":
+            from backend.adaptive.observer import ContinuousObservationEngine
+            from backend.adaptive.change_detector import ChangeDetector
+            obs = ContinuousObservationEngine().list_observations()
+            detector = ChangeDetector()
+            events = detector.process_observations(obs)
+            self._send_json([e.to_dict() for e in events])
+            return
+
+        elif path == "/api/adaptive/knowledge":
+            from backend.adaptive.knowledge_registry import KnowledgeRegistry
+            kr = KnowledgeRegistry()
+            self._send_json([k.to_dict() for k in kr.list_knowledge()])
+            return
+
+        elif path == "/api/adaptive/self-healing":
+            from backend.adaptive.self_healing import PlatformSelfDiagnostics
+            self._send_json(PlatformSelfDiagnostics.run_diagnostics())
+            return
+
         # Operational Probes
         elif path == "/api/health":
             self._send_json(check_system_health())
@@ -443,6 +481,52 @@ class ExposureFenceHandler(BaseHTTPRequestHandler):
                 try:
                     res = approve_by_id(proposal_id, session_id)
                     self._send_json(res)
+                except Exception as e:
+                    self._send_json({"error": str(e)}, 400)
+                return
+
+        # Proposal Auto-Approval Evaluation Endpoint
+        elif path.startswith("/api/proposals/") and path.endswith("/evaluate-auto-approval"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4 and parts[1] == "proposals" and parts[3] == "evaluate-auto-approval":
+                proposal_id = parts[2]
+                from backend.proposals import get_proposal_by_id
+                from backend.governance.auto_approval import AutoApprovalEvaluator
+                from backend.evidence.service import EvidenceService
+
+                prop = get_proposal_by_id(proposal_id)
+                if not prop:
+                    self._send_json({"error": f"Proposal '{proposal_id}' not found."}, 404)
+                    return
+
+                ev_svc = EvidenceService()
+                evidence = ev_svc.get_evidence(prop.get("evidence_id")) if prop.get("evidence_id") else None
+
+                res = AutoApprovalEvaluator.evaluate(prop, evidence=evidence)
+                self._send_json(res.to_dict())
+                return
+
+        # Proposal Auto-Approval Apply Endpoint
+        elif path.startswith("/api/proposals/") and path.endswith("/auto-approve"):
+            parts = path.strip("/").split("/")
+            if len(parts) == 4 and parts[1] == "proposals" and parts[3] == "auto-approve":
+                proposal_id = parts[2]
+                from backend.proposals import get_proposal_by_id
+                from backend.governance.auto_approval import AutoApprovalEvaluator, apply_auto_approval_decision
+                from backend.evidence.service import EvidenceService
+
+                prop = get_proposal_by_id(proposal_id)
+                if not prop:
+                    self._send_json({"error": f"Proposal '{proposal_id}' not found."}, 404)
+                    return
+
+                ev_svc = EvidenceService()
+                evidence = ev_svc.get_evidence(prop.get("evidence_id")) if prop.get("evidence_id") else None
+
+                eval_res = AutoApprovalEvaluator.evaluate(prop, evidence=evidence)
+                try:
+                    result = apply_auto_approval_decision(proposal_id, eval_res)
+                    self._send_json(result)
                 except Exception as e:
                     self._send_json({"error": str(e)}, 400)
                 return

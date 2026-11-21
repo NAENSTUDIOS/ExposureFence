@@ -35,7 +35,7 @@ ExposureFence is an enterprise-grade AWS Cloud Security Governance, Attack-Path 
 | **AgentCore Harness** | `agent/` | Inline-function tool dispatchers with strict parameter sanitization |
 | **Security Operations Console** | `dashboard/` | Single-page responsive operations UI (12 tabs, zero CDN dependencies) |
 | **Container Engine** | `Dockerfile`, `docker-compose.yml` | Multi-stage unprivileged Docker packaging with health probes |
-| **Verification Suites** | `tests/offline/` | 213 offline tests covering unit, integration, and red-team attacks |
+| **Verification Suites** | `tests/offline/` | 241 offline tests covering unit, integration, and red-team attacks |
 
 ---
 
@@ -47,7 +47,7 @@ Before deploying or running ExposureFence in any target environment, execute the
 # 1. Activate isolated Python virtual environment
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 
-# 2. Verify all 213 automated tests pass with 100% coverage of core invariants
+# 2. Verify all 241 automated tests pass with 100% coverage of core invariants
 python -m pytest tests/offline backend/test_database.py -v
 
 # 3. Verify declarative rules engine and attack scenario scorecard
@@ -60,7 +60,7 @@ pip-audit
 ```
 
 *Expected Verification Output:*
-- Total Tests: **213 Passed (0 Failed, 0 Skipped)**
+- Total Tests: **241 Passed (0 Failed, 0 Skipped)**
 - Scorecard: **R01–R07 PASS, T01–T07 PASS (Score: 100%)**
 - Flake8 / Bandit / Pip-Audit: **0 Critical Vulnerabilities**
 
@@ -142,7 +142,7 @@ exposurefence_proposals_total{status="APPROVED"} 5
 exposurefence_proposals_total{status="EXECUTED"} 2
 exposurefence_proposals_total{status="REJECTED"} 1
 exposurefence_audit_events_total 142
-exposurefence_offline_tests_passing 213
+exposurefence_offline_tests_passing 241
 exposurefence_security_score 100
 ```
 

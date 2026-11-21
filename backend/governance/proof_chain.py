@@ -203,6 +203,62 @@ class ProofChainService:
 
         return record
 
+    def evaluate_auto_approval(
+        self,
+        chain_id: str,
+        caller_role: str = "POLICY_ENGINE"
+    ) -> Dict[str, Any]:
+        """
+        Evaluates a proof chain proposal against the 90% threshold auto-approval policy.
+        If score >= 90.0 and all mandatory security gates pass, transitions to AUTO_APPROVED_CONDITIONAL.
+        """
+        record = self.get_chain(chain_id)
+        if not record:
+            raise ValueError(f"Proof chain '{chain_id}' not found.")
+
+        from backend.governance.auto_approval import AutoApprovalEvaluator
+        from backend.evidence.service import EvidenceService
+
+        ev_svc = EvidenceService(db_path=self.db_path)
+        evidence = ev_svc.get_evidence(record.evidence_id)
+
+        proposal_dict = {
+            "proposal_id": chain_id,
+            "finding_id": record.finding_id,
+            "resource_id": record.resource_arn,
+            "remediation": record.remediation_plan_id,
+            "remediation_action": "enable_s3_block_public_access" if "s3" in record.finding_id.lower() else "revoke_security_group_ingress" if "sg" in record.finding_id.lower() else "detach_admin_role_policy",
+            "evidence_id": record.evidence_id,
+            "evidence_payload_digest": record.evidence_digest,
+            "rule_id": record.rule_id,
+            "rule_version": record.rule_version,
+            "remediation_digest": record.remediation_plan_digest,
+            "status": record.lifecycle_state.value,
+            "created_at": record.created_at,
+            "expires_at": record.approval_expires_at,
+            "rollback_plan": {"revert": True},
+            "preconditions": {"evidence_digest": record.evidence_digest}
+        }
+
+        eval_res = AutoApprovalEvaluator.evaluate(
+            proposal=proposal_dict,
+            evidence=evidence,
+            db_path=self.db_path
+        )
+
+        if eval_res.decision == "AUTO_APPROVED_CONDITIONAL":
+            RemediationStateMachine.transition(
+                current_state=record.lifecycle_state,
+                target_state=ProposalLifecycleState.AUTO_APPROVED_CONDITIONAL,
+                caller_role=caller_role
+            )
+            record.lifecycle_state = ProposalLifecycleState.AUTO_APPROVED_CONDITIONAL
+            record.approver_identity = eval_res.decision_authority
+            record.approval_timestamp = eval_res.decision_timestamp
+            self._save_chain(record)
+
+        return eval_res.to_dict()
+
     def execute_and_verify(
         self,
         chain_id: str,
@@ -219,11 +275,11 @@ class ProofChainService:
         if not record:
             raise ValueError(f"Proof chain '{chain_id}' not found.")
 
-        # Finding 1: Enforce current APPROVED state before execution
-        if record.lifecycle_state != ProposalLifecycleState.APPROVED:
+        # Finding 1: Enforce current APPROVED or AUTO_APPROVED_CONDITIONAL state before execution
+        if record.lifecycle_state not in (ProposalLifecycleState.APPROVED, ProposalLifecycleState.AUTO_APPROVED_CONDITIONAL):
             raise PermissionError(
                 f"Unauthorized Execution: Cannot execute proposal in state '{record.lifecycle_state.value}'. "
-                f"Proposal must be in '{ProposalLifecycleState.APPROVED.value}' state before execution."
+                f"Proposal must be in 'APPROVED' state (or 'AUTO_APPROVED_CONDITIONAL') before execution."
             )
 
         # Finding 1: Enforce caller_role authorization via State Machine and RBAC

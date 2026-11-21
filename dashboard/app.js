@@ -22,6 +22,7 @@ function switchTab(tabName) {
   else if (tabName === 'graph') loadGraph();
   else if (tabName === 'proofchain') loadProofChains();
   else if (tabName === 'compliance') loadCompliance();
+  else if (tabName === 'adaptive') loadAdaptive();
 }
 
 // Authentication Helpers
@@ -296,6 +297,7 @@ async function loadProposals() {
       const tr = document.createElement('tr');
       let statusBadge = '<span class="badge badge-cyan">PENDING</span>';
       if (p.status === 'APPROVED') statusBadge = '<span class="badge badge-green">APPROVED</span>';
+      if (p.status === 'AUTO_APPROVED_CONDITIONAL') statusBadge = '<span class="badge badge-purple">AUTO_APPROVED (90%+)</span>';
       if (p.status === 'REJECTED') statusBadge = '<span class="badge badge-red">REJECTED</span>';
 
       let actionHtml = '-';
@@ -304,9 +306,12 @@ async function loadProposals() {
           actionHtml = `
             <button class="btn btn-sm btn-green" onclick="approveProposal('${p.proposal_id}')">Approve</button>
             <button class="btn btn-sm btn-red" onclick="rejectProposal('${p.proposal_id}')" style="margin-left:4px;">Reject</button>
+            <button class="btn btn-sm btn-outline" onclick="evaluateAutoApproval('${p.proposal_id}')" style="margin-left:4px;">Evaluate Auto-Approval</button>
           `;
         } else {
-          actionHtml = `<span style="color:var(--text-muted); font-size:11px;">Login required</span>`;
+          actionHtml = `
+            <button class="btn btn-sm btn-outline" onclick="evaluateAutoApproval('${p.proposal_id}')">Evaluate Auto-Approval</button>
+          `;
         }
       }
 
@@ -808,8 +813,112 @@ async function loadAllData() {
     loadIntelligence(),
     loadGraph(),
     loadProofChains(),
-    loadCompliance()
+    loadCompliance(),
+    loadAdaptive()
   ]);
+}
+
+async function loadAdaptive() {
+  try {
+    const [obsRes, chgRes, knwRes, hltRes] = await Promise.all([
+      fetch('/api/adaptive/observations').then(r => r.json()).catch(() => []),
+      fetch('/api/adaptive/changes').then(r => r.json()).catch(() => []),
+      fetch('/api/adaptive/knowledge').then(r => r.json()).catch(() => []),
+      fetch('/api/adaptive/self-healing').then(r => r.json()).catch(() => ({}))
+    ]);
+
+    // 1. Render Observations
+    const obsContainer = document.getElementById('adaptiveObservationsList');
+    if (obsContainer) {
+      obsContainer.innerHTML = '';
+      obsRes.forEach(o => {
+        const item = document.createElement('div');
+        item.style.cssText = 'padding:10px 14px; background:var(--bg-secondary); border-radius:6px; font-size:12px;';
+        item.innerHTML = `
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <strong>${o.id}</strong>
+            <span class="badge badge-cyan">${o.source_type}</span>
+          </div>
+          <div style="color:var(--text-secondary); margin-bottom:4px;">${o.source_name} (v${o.source_version})</div>
+          <div style="color:var(--text-muted); font-size:11px;">Confidence: ${(o.confidence * 100).toFixed(0)}% | Integrity: ${o.integrity_hash.substring(0, 12)}...</div>
+        `;
+        obsContainer.appendChild(item);
+      });
+    }
+
+    // 2. Render Change Events
+    const chgContainer = document.getElementById('adaptiveChangesList');
+    if (chgContainer) {
+      chgContainer.innerHTML = '';
+      chgRes.forEach(c => {
+        const item = document.createElement('div');
+        item.style.cssText = 'padding:10px 14px; background:var(--bg-secondary); border-radius:6px; font-size:12px; border-left:3px solid var(--accent-cyan);';
+        const urgClass = c.urgency === 'CRITICAL' ? 'badge-red' : (c.urgency === 'HIGH' ? 'badge-amber' : 'badge-green');
+        item.innerHTML = `
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <strong>${c.title}</strong>
+            <span class="badge ${urgClass}">${c.urgency}</span>
+          </div>
+          <div style="color:var(--text-secondary); margin-bottom:4px;">${c.description}</div>
+          <div style="color:var(--text-muted); font-size:11px;">Status: <strong>${c.status}</strong> | Domain: ${c.provider}</div>
+        `;
+        chgContainer.appendChild(item);
+      });
+    }
+
+    // 3. Render Knowledge
+    const knwContainer = document.getElementById('adaptiveKnowledgeList');
+    if (knwContainer) {
+      knwContainer.innerHTML = '';
+      knwRes.forEach(k => {
+        const item = document.createElement('div');
+        item.style.cssText = 'padding:10px 14px; background:var(--bg-secondary); border-radius:6px; font-size:12px;';
+        item.innerHTML = `
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <strong>${k.knowledge_id}</strong>
+            <span class="badge badge-purple">${k.adoption_status}</span>
+          </div>
+          <div style="color:var(--text-secondary);">${k.title} (v${k.version})</div>
+          <div style="color:var(--text-muted); font-size:11px; margin-top:2px;">Controls: <code>${(k.affected_controls || []).join(', ')}</code></div>
+        `;
+        knwContainer.appendChild(item);
+      });
+    }
+
+    // 4. Render Health Status
+    const hltContainer = document.getElementById('adaptiveHealthStatus');
+    if (hltContainer && hltRes.platform_status) {
+      hltContainer.innerHTML = `
+        <div style="margin-bottom:8px;"><strong>Platform Health:</strong> <span class="badge badge-green">${hltRes.platform_status}</span></div>
+        <div style="color:var(--text-secondary); margin-bottom:12px;">Safe local maintenance mode: Active (Reversible local cache rebuilds only). Cloud mutation: DISABLED.</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          ${(hltRes.checks || []).map(c => `
+            <div style="display:flex; justify-content:space-between; padding:4px 8px; background:var(--bg-primary); border-radius:4px;">
+              <span><code>${c.subsystem}</code></span>
+              <span class="badge badge-green">${c.status}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  } catch (err) {
+    console.error('Failed to load adaptive intelligence:', err);
+  }
+}
+
+async function evaluateAutoApproval(proposalId) {
+  try {
+    const res = await fetch(`/api/proposals/${proposalId}/evaluate-auto-approval`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      alert(`Auto-Approval Evaluation:\nProposal: ${data.proposal_id}\nScore: ${data.score}% (Threshold: 90.0%)\nDecision: ${data.decision}\nAuthority: ${data.decision_authority}\nSimulated Only: ${data.simulated_execution_only}`);
+      await loadProposals();
+    } else {
+      alert(`Evaluation error: ${data.error || 'Failed'}`);
+    }
+  } catch (err) {
+    alert('Server error during evaluation');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

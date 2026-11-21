@@ -1,0 +1,95 @@
+[
+  {
+    "id": "OBS-AWS-001",
+    "source_type": "CLOUD_SECURITY",
+    "source_name": "AWS Security Bulletin",
+    "timestamp": "2026-11-20T12:00:00Z",
+    "source_version": "2026.11",
+    "evidence_ref": "EVD-AWS-IAM-PASSROLE-2026",
+    "payload": {
+      "service": "iam",
+      "change_type": "PRIVILEGE_ESCALATION_PATTERN",
+      "description": "New indirect PassRole escalation path discovered involving Glue development endpoints and Lambda execution roles.",
+      "severity": "HIGH",
+      "affected_actions": ["iam:PassRole", "glue:CreateDevEndpoint"]
+    },
+    "confidence": 0.95,
+    "relevance": 0.90,
+    "freshness": "FRESH",
+    "validation_status": "VALIDATED"
+  },
+  {
+    "id": "OBS-CVE-001",
+    "source_type": "VULNERABILITY",
+    "source_name": "NVD / CISA KEV",
+    "timestamp": "2026-11-20T14:30:00Z",
+    "source_version": "CVE-2026-11942",
+    "evidence_ref": "EVD-NVD-2026-11942",
+    "payload": {
+      "cve_id": "CVE-2026-11942",
+      "description": "Unauthenticated SSRF in cloud metadata endpoint proxying configurations.",
+      "cvss_score": 8.6,
+      "affected_component": "EC2 Metadata IMDSv1",
+      "remediation_hint": "Enforce IMDSv2 HttpTokens=required across all running instances"
+    },
+    "confidence": 0.98,
+    "relevance": 0.95,
+    "freshness": "FRESH",
+    "validation_status": "VALIDATED"
+  },
+  {
+    "id": "OBS-AI-001",
+    "source_type": "AI_SECURITY",
+    "source_name": "OWASP Top 10 for LLMs Advisory",
+    "timestamp": "2026-11-20T16:00:00Z",
+    "source_version": "2026-LLM-01",
+    "evidence_ref": "EVD-OWASP-LLM-INDIRECT-2026",
+    "payload": {
+      "technique": "INDIRECT_PROMPT_INJECTION_VIA_TAGS",
+      "description": "Adversary implants payload inside AWS resource tag 'Description' or 'Owner' to divert tool calling.",
+      "severity": "HIGH",
+      "mitigation": "Strict parameter sanitization and invariant rule R06/R07 validation"
+    },
+    "confidence": 0.92,
+    "relevance": 0.88,
+    "freshness": "FRESH",
+    "validation_status": "VALIDATED"
+  },
+  {
+    "id": "OBS-CIS-001",
+    "source_type": "COMPLIANCE",
+    "source_name": "CIS AWS Foundations Benchmark",
+    "timestamp": "2026-11-20T18:00:00Z",
+    "source_version": "v3.1.0-draft",
+    "evidence_ref": "EVD-CIS-AWS-3.1",
+    "payload": {
+      "framework": "CIS_AWS_V3.1",
+      "control_id": "CIS-2.1.6",
+      "title": "Ensure S3 Object Lock is enabled on compliance-governed archival buckets",
+      "target_service": "s3",
+      "severity": "MEDIUM"
+    },
+    "confidence": 0.90,
+    "relevance": 0.85,
+    "freshness": "FRESH",
+    "validation_status": "VALIDATED"
+  },
+  {
+    "id": "OBS-HLT-001",
+    "source_type": "PROJECT_HEALTH",
+    "source_name": "ExposureFence Health Prober",
+    "timestamp": "2026-11-20T20:00:00Z",
+    "source_version": "HEALTH-2026-11",
+    "evidence_ref": "EVD-INTERNAL-HEALTH-001",
+    "payload": {
+      "subsystem": "cache_indexing",
+      "status": "DRIFT_DETECTED",
+      "description": "Secondary search index contains stale asset reference for terminated EC2 test instance.",
+      "remediation_action": "REBUILD_LOCAL_CACHE"
+    },
+    "confidence": 1.0,
+    "relevance": 0.80,
+    "freshness": "FRESH",
+    "validation_status": "VALIDATED"
+  }
+]

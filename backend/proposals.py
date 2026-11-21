@@ -153,7 +153,7 @@ def get_proposal_by_id(proposal_id: str, db_path: Optional[str] = None) -> Optio
         SELECT proposal_id, finding_id, resource_id, remediation, status,
                evidence_id, evidence_payload_digest, rule_id, rule_version,
                rule_set_digest, remediation_template_id, remediation_digest,
-               created_at, expires_at
+               created_at, expires_at, auto_approval_score, auto_approval_decision
         FROM proposals
         WHERE proposal_id = ?
         """,
@@ -179,4 +179,6 @@ def get_proposal_by_id(proposal_id: str, db_path: Optional[str] = None) -> Optio
         "remediation_digest": row[11],
         "created_at": row[12],
         "expires_at": row[13],
+        "auto_approval_score": row[14] if len(row) > 14 else None,
+        "auto_approval_decision": row[15] if len(row) > 15 else None,
     }

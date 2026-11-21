@@ -97,13 +97,13 @@ See [docs/AGENT_TOOL_CONTRACTS.md](file:///c:/Users/nasir/ExposureFence/docs/AGE
 
 ## 5. Security Operations Console (Local Dashboard)
 
-A lightweight, high-performance console implemented with Python's standard-library `http.server.ThreadingHTTPServer` and vanilla JavaScript. Contains **zero external CDNs**, runs completely offline on `http://127.0.0.1:8000`, and features 12 tabs:
+A lightweight, high-performance console implemented with Python's standard-library `http.server.ThreadingHTTPServer` and vanilla JavaScript. Contains **zero external CDNs**, runs completely offline on `http://127.0.0.1:8000`, and features 13 tabs:
 
-1. **Executive Overview:** Real-time KPIs (Security Score 100%, Rules 7/7, Attacks 7/7, 213 Tests Passing, Audit Chain Valid, Zero Mutations Verified).
+1. **Executive Overview:** Real-time KPIs (Security Score 100%, Rules 7/7, Attacks 7/7, 241 Tests Passing, Audit Chain Valid, Zero Mutations Verified).
 2. **Master Scorecard:** Rule status (R01–R07) and attack suite results (T01–T07).
 3. **Exposure Findings:** Vulnerability details, severities, risk scores, and evidence IDs.
 4. **Evidence Registry:** Registered evidence IDs, RFC 8785 canonical hashes, and freshness status.
-5. **Proposal Governance:** Real-time SQLite review queue with out-of-band "Approve" and "Reject" actions.
+5. **Proposal Governance:** Real-time SQLite review queue with out-of-band "Approve", "Reject", and 90% Threshold Auto-Approval.
 6. **Audit Timeline:** Append-only SHA-256 hash-chained event trail.
 7. **Attack Center:** Matrix of all 7 blocked adversarial attacks.
 8. **AgentCore Live Console:** Direct telemetry of AWS region, caller identity, harness configuration, interactive agent chat, and live test runner.
@@ -111,6 +111,7 @@ A lightweight, high-performance console implemented with Python's standard-libra
 10. **Cloud Asset Graph:** Deterministic multi-step attack-path discovery (BFS) and blast-radius choke-point analysis.
 11. **Proof Chain Governance:** 20-step evidence-to-action proof chains, pre-execution drift revalidation, and sealed Merkle dossiers.
 12. **Compliance Frameworks:** Real-time continuous compliance posture mapped across CIS AWS v3.0, NIST CSF 2.0, MITRE ATT&CK Cloud, and OWASP LLM 2025.
+13. **Adaptive Intelligence & Auto-Approval:** Real-time continuous threat observation, normalized change events, impact analysis, sandboxed candidate evaluation, versioned knowledge registry, and 90% threshold auto-approval policy.
 
 ---
 
@@ -146,7 +147,7 @@ Console admin credentials:
 
 ## 7. Automated Testing Suite
 
-### 1. Offline Verification Suite (213 Tests)
+### 1. Offline Verification Suite (241 Tests)
 Runs in ~9 seconds locally without incurring any cloud costs:
 ```bash
 python -m pytest tests/offline backend/test_database.py -v
@@ -177,7 +178,7 @@ T05 PASS
 T06 PASS
 T07 PASS
 
-Total Tests Executed: 213
+Total Tests Executed: 241
 Final Security Score: 100%
 ```
 
