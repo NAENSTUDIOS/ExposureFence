@@ -52,7 +52,7 @@ jobs:
                       p = os.path.join(root, f)
                       with open(p, 'r', encoding='utf-8', errors='ignore') as fp:
                           for line in fp:
-                              if pattern.search(line) and 'AKIA...' not in line:
+                              if pattern.search(line) and 'AKIA...' not in line and 'AKIAIOSFODNN7EXAMPLE' not in line:
                                   print(f'Secret detected in {p}: {line.strip()}')
                                   found = True
           if found: sys.exit(1)

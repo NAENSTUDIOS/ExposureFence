@@ -1,252 +1,347 @@
-# ExposureFence — Rules as Tests
+# ExposureFence — Evidence-Driven Cloud Security Governance & Response Assurance
 
-> **An autonomous cloud security and governance platform built on Amazon Bedrock AgentCore.**  
-> Evaluates AWS public exposure risks through deterministic boundaries, inline tool handoffs, cryptographic evidence, proposal-approval separation, and continuous adversarial verification.
-
----
-
-## 1. The Core Innovation: Rules as Tests
-
-Most AI security demonstrations rely on **conversational refusals**: an LLM is given prompt steering or Guardrails and says, *"I'm sorry, I cannot do that."*
-
-**ExposureFence rejects conversational trust as an enforcement mechanism.**
-
-In ExposureFence, **every security rule is an independent, deterministic software test grounded in cryptographic evidence**:
-1. **The agent has zero AWS write permissions.**
-2. **The agent cannot approve its own proposals or accept conversational approvals.**
-3. **The tool surface is strictly restricted to three approved inline functions.**
-4. **Remediation actions cannot execute directly; they only create `PENDING` proposals in SQLite.**
-5. **A rule passes only when independent code verifies that the forbidden action did not happen.**
-
-> **Disclosure:** In this hackathon MVP, cloud exposure findings and adversarial evaluations operate on synthetic, cryptographically hashed AWS fixtures (`mock_data/s3_buckets.json` and `mock_data/security_groups.json`) in a strictly controlled sandbox.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-blue.svg)](https://www.python.org/)
+[![Tests: 244 Passing](https://img.shields.io/badge/tests-244%20passing-brightgreen.svg)](tests/offline/)
+[![Security Score: 100%](https://img.shields.io/badge/security%20score-100%25-brightgreen.svg)](backend/evaluate.py)
+[![Cost: ₹0 / $0](https://img.shields.io/badge/cloud%20spend-%E2%82%B90.00%20%2F%20%240.00-success.svg)](docs/ZERO_COST_POLICY.md)
+[![Operational Mode: Offline Simulation](https://img.shields.io/badge/mode-offline%20simulation-orange.svg)](docs/RELEASE_LIMITATIONS.md)
 
 ---
 
-## 2. System Architecture
+## 1. Project Identity & Mission
 
+**ExposureFence** is an open-source, evidence-driven AWS Cloud Security Governance and Autonomous Response Assurance Platform built on the principle of **Rules as Tests**.
+
+Rather than relying on conversational refusals or trusting AI models to police their own actions, ExposureFence enforces deterministic security boundaries:
+- AI models propose remediations, but possess **zero cloud write authority**.
+- The AI agent **cannot approve its own proposals** or execute changes.
+- Every remediation proposal is cryptographically bound to **RFC 8785 canonical evidence**, evaluated against deterministic **YAML security rules**, and gated by either **authenticated human approval** or a rigorous **90% threshold quality policy**.
+- Remediations are simulated and verified by an **independent post-action test oracle** against ground truth before any security incident can be marked resolved.
+
+---
+
+## 2. The Problem ExposureFence Solves
+
+Modern cloud security automation and agentic AI systems suffer from three fundamental vulnerabilities:
+
+1. **Conversational Trust Vulnerability:** AI security assistants frequently use conversational refusals (e.g., *"I cannot delete that bucket"*). Prompt injection, jailbreaking, or subtle context manipulation can bypass these guardrails when the LLM holds direct cloud credentials.
+2. **The "Blind Trust" Remediation Flaw:** Traditional automation scripts execute a cloud API mutation (such as `PutPublicAccessBlock`) and mark the incident resolved as long as the API returns HTTP 200. In reality, permission boundaries, explicit denies in resource policies, out-of-band automation, or cloud eventual consistency often leave the exposure active.
+3. **Lack of Cryptographic Provenance:** Security teams cannot prove whether an AI remediation was executed against real, fresh findings or hallucinated data, creating an audit gap in regulated enterprise environments.
+
+---
+
+## 3. Key Differentiators
+
+| Capability | Traditional Cloud Security / Scripts | Generic AI Security Agents | ExposureFence |
+| :--- | :--- | :--- | :--- |
+| **Enforcement Mechanism** | Hardcoded scripts / Regex | System prompt instructions | **Rules as Tests (Independent Test Oracles)** |
+| **Cloud Write Permissions** | High-privilege write keys | Read/Write IAM credentials | **Zero Write Permissions (100% Read-Only / Simulated)** |
+| **Remediation Authority** | Unchecked execution | Agent self-approval | **Four-Eye Role Separation (Human or 90% Policy Gate)** |
+| **Evidence Binding** | Raw API strings | Unverified chat context | **RFC 8785 Canonical JSON + SHA-256 Digesting** |
+| **Post-Action Assurance** | Blind HTTP 200 trust | Hallucinated resolution | **Independent Ground-Truth Re-Inspection Oracle** |
+| **Audit Integrity** | Standard text logs | Ephemeral chat logs | **Immutable SHA-256 Hash-Chained Audit Ledger** |
+| **Operating Cost** | Recurring cloud bills | Expensive paid LLM calls | **Strictly ₹0.00 / $0.00 (Offline Deterministic Mode)** |
+
+---
+
+## 4. Architecture Overview
+
+ExposureFence operates as a closed-loop governance pipeline with strict separation of concerns:
+
+1. **Detection & Ingestion:** Connectors ingest asset configurations into an append-only RFC 8785 Evidence Ledger.
+2. **Declarative Evaluation:** The YAML Rules Engine evaluates findings against `rules/rules.yaml`.
+3. **Graph Analysis & Risk:** A multi-hop BFS graph engine uncovers attack paths and calculates composite contextual risk.
+4. **AI Investigation:** Amazon Bedrock AgentCore dispatches inline tool calls (`read_mock_s3`, `read_mock_security_groups`, `propose_fix`).
+5. **Quality Scoring & Approval Gate:** Proposals are scored across 10 categories. If score >= 90.00% and all 8 mandatory security gates pass, it achieves `AUTO_APPROVED_CONDITIONAL`; otherwise, it requires authenticated human sign-off.
+6. **Pre-Execution Drift Revalidation:** Prior to execution, the platform verifies that the underlying evidence hash has not mutated.
+7. **Execution Simulation:** Remediation actions execute in zero-mutation simulated mode.
+8. **Independent Post-Action Verification:** An independent oracle probes ground-truth state to confirm resolution.
+9. **Forensic Sealing & Auditing:** Merkle evidence dossiers are sealed and logged to the tamper-evident audit hash chain.
+
+---
+
+## 5. System Architecture Diagram
+
+```mermaid
+flowchart TD
+    subgraph DataPlane["1. Asset Telemetry & Canonical Evidence Engine"]
+        A["Cloud Asset Telemetry (Mock S3, SG, IAM)"] --> B["RFC 8785 Canonicalizer (JCS)"]
+        B --> C["Evidence Ledger (SQLite + SHA-256 Digest)"]
+    end
+
+    subgraph IntelligencePlane["2. Risk & Attack-Path Analysis"]
+        C --> D["Declarative YAML Rules Engine (rules.yaml)"]
+        C --> E["Contextual Risk Engine"]
+        C --> F["Bounded BFS Attack Path Engine"]
+    end
+
+    subgraph AgentPlane["3. Bedrock AgentCore Investigation"]
+        D & E & F --> G["Amazon Bedrock AgentCore Client"]
+        G --> H["Server Dispatcher (Strict 3-Tool Allowlist)"]
+        H --> I["Remediation Proposal Queue (State: PENDING)"]
+    end
+
+    subgraph GovernancePlane["4. Deterministic Governance & Approval"]
+        I --> J{"90% Quality Evaluator (10 Rubrics, 100 Pts)"}
+        J -->|"Score >= 90% & All 8 Gates Pass"| K["AUTO_APPROVED_CONDITIONAL"]
+        J -->|"Score < 90% or Gate Block"| L["Authenticated Human Approver (Console RBAC)"]
+        L --> M["State: APPROVED"]
+    end
+
+    subgraph ExecutionPlane["5. Verification & Forensic Sealing"]
+        K & M --> N["Pre-Execution Drift Revalidation"]
+        N --> O["Simulated Remediation Execution"]
+        O --> P{"Independent Post-Action Test Oracle"}
+        P -->|"Ground Truth Secure"| Q["State: VERIFIED"]
+        P -->|"Ground Truth Exposed"| R["State: VERIFICATION_FAILED"]
+        Q & R --> S["Sealed Merkle Evidence Dossier"]
+        S --> T["Tamper-Evident Hash-Chained Audit Ledger"]
+    end
 ```
-User / Security Officer
-       │
-       ▼ (Browser: HttpOnly Cookie + CSRF Header)
-[ ExposureFence Security Operations Console ]  (dashboard/index.html & app.js)
-       │
-       ▼ (Bound strictly to 127.0.0.1:8000 via ThreadingHTTPServer)
-[ Local Python Backend Server ] (backend/server.py)
-       │
-       ▼ (boto3: bedrock-agentcore Converse Streaming / Offline Mock Engine)
-[ Amazon Bedrock AgentCore Managed Harness ] (ExposureFenceHarness)
-       │
-       ├─► [ Amazon Bedrock Foundation Model ] (Amazon Nova Lite v1:0)
-       │
-       ▼ (stream: toolUse events intercepted)
-[ 12-Step Inline Tool Dispatcher ] (agent/agentcore_client.py)
-       │
-       ▼ (Strict 3-Tool Allowlist & Parameter Sanitization)
-[ Server-Side Dispatcher ] (backend/dispatcher.py)
-       ├── 1. read_mock_s3 ──────────► [ Phase 4 Evidence Ledger & SEC-S3-001 Rule ]
-       ├── 2. read_mock_security_groups ──► [ Phase 4 Evidence Ledger & SEC-EC2-001 Rule ]
-       └── 3. propose_fix ───────────► [ Evidence Integrity, Freshness & Rule Evaluator ]
-                                                     │
-                                                     ▼
-                                     [ Phase 5 YAML Rules Engine ] (rules/rules.yaml)
-                                                     │
-                                                     ▼
-                                     [ SQLite Proposal Queue (PENDING) ] (exposurefence.db)
-                                       (Bound: evidence_id, payload_digest, rule_digest)
-                                                     │
-                                                     ▼ (Out-of-band human decision)
-                                     [ Human Approval Workflow ] (backend/approvals.py)
-                                       (TTL Expiration & Cryptographic Re-Verification)
-                                                     │
-                                                     ▼
-                                     [ Tamper-Evident Audit Log ] (audit.jsonl)
-                                       (SHA-256 Hash Chained: prev_hash -> event_hash)
+
+---
+
+## 6. Core Features
+
+- **Evidence Ledger (RFC 8785):** Implements JSON Canonicalization Scheme for deterministic, byte-level reproducible SHA-256 evidence digests.
+- **Declarative YAML Rules Engine:** Evaluates declarative cloud rules without executing arbitrary code via an in-tree AST-safe YAML parser.
+- **Bounded BFS Attack-Path Engine:** Discovers multi-hop privilege escalation and lateral movement attack paths without graph traversal recursion traps.
+- **Contextual Multi-Factor Risk Engine:** Weighs public exposure, asset business criticality, attack path depth, and compliance severity.
+- **90% Automated Remediation Approval (`AUTO_REMEDIATION_APPROVAL_V1`):** Deterministic 10-category scoring rubric (100 pts) with 8 mandatory override security gates.
+- **ASIVE Adaptive Intelligence Engine:** Closed-loop continuous observation, change deduplication, impact analysis, solution ranking, sandboxed testing, and rollback.
+- **Independent Post-Action Verification:** Dual-mode ground-truth verification preventing false compliance certifications.
+- **Tamper-Evident Audit Ledger:** Forward and backward SHA-256 hash chaining of every state transition and operator action.
+- **Local Security Console:** 13-tab dark-mode Security Operations Console running locally with zero external CDN dependencies.
+
+---
+
+## 7. Evidence-to-Action Proof Chain
+
+The Evidence-to-Action Proof Chain enforces a cryptographic lifecycle across 7 states:
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: Ingest Finding & Generate RFC 8785 Digest
+    PENDING --> AUTO_APPROVED_CONDITIONAL: 90% Quality Score & All 8 Gates Pass
+    PENDING --> APPROVED: Authenticated Human Approval (Bcrypt + CSRF)
+    PENDING --> BLOCKED_SECURITY_GATE: Gate Failure or Destructive Action
+    AUTO_APPROVED_CONDITIONAL --> EXECUTING: Drift Revalidation Passed
+    APPROVED --> EXECUTING: Drift Revalidation Passed
+    EXECUTING --> VERIFIED: Independent Ground Truth Confirms Remediation
+    EXECUTING --> VERIFICATION_FAILED: Independent Ground Truth Detects Exposure
+    VERIFIED --> [*]: Merkle Dossier Sealed
+    VERIFICATION_FAILED --> [*]: Failure Dossier Sealed & Logged
 ```
 
 ---
 
-## 3. The Seven Declarative Security Rules (R01–R07)
+## 8. The 90% Conditional Approval Mechanism
 
-Codified declaratively in `rules/rules.yaml`:
-
-| Rule ID | Rule Description | Allowed Action | Forbidden Action | Enforcement Layer | Verifying Test ID |
-| :---: | :--- | :--- | :--- | :--- | :---: |
-| **R01** | Mock Data Only | Read mock fixtures | Read live AWS resources | Application Boundary | `T01` |
-| **R02** | No Cloud Mutations | Analyze exposure | Modify AWS resources | Tool Surface | `T02` |
-| **R03** | Three Tool Limit | Approved tools only | Unknown or system tools | Server Dispatcher | `T03` |
-| **R04** | Proposal Only | Create pending proposal | Execute direct fix | Proposal Engine | `T04` |
-| **R05** | Separate Approval | Authenticated approval | Chat-based approval | Authentication Gate | `T05` |
-| **R06** | Untrusted Fixture Content | Read passive data | Execute embedded instructions | Validation Engine | `T06` |
-| **R07** | Evidence Required | Evidence-backed findings | Hallucinated findings | Scoring Engine | `T07` |
-
----
-
-## 4. The Three Approved Inline Tools
-
-The managed harness explicitly restricts `allowedTools` to these three inline functions, each deeply integrated with the Phase 4 Evidence Ledger and Phase 5 YAML Rules Engine:
-
-1. **`read_mock_s3`**: Reads approved synthetic S3 bucket configurations, synchronizes with the Evidence Ledger, verifies RFC 8785 canonical SHA-256 digests, and executes declarative rule `SEC-S3-001`.
-2. **`read_mock_security_groups`**: Reads approved synthetic EC2 security-group ingress rules, flags public administrative ports (`0.0.0.0/0` on 22/3389), records evidence provenance, and executes rule `SEC-EC2-001`.
-3. **`propose_fix`**: Submits a deterministic remediation proposal for a validated finding (e.g. `F-S3-001`, `F-SG-001`). Requires verified, fresh evidence in the Phase 4 Ledger and confirms that the bound rule evaluated to `FAIL`. Binds `evidence_id`, `evidence_payload_digest`, `rule_set_digest`, and a 24-hour expiration TTL.
-
-All built-in AgentCore capabilities (shell, code interpreter, browser, filesystem writes) are explicitly disabled.
-
-See [docs/AGENT_TOOL_CONTRACTS.md](file:///c:/Users/nasir/ExposureFence/docs/AGENT_TOOL_CONTRACTS.md) for complete parameter and response schemas.
+Under `AUTO_REMEDIATION_APPROVAL_V1`, a proposal is conditionally auto-approved if and only if:
+1. **Mathematical Quality Score >= 90.00%** across 10 evaluation categories:
+   - Evidence Completeness & Provenance (12 pts)
+   - Evidence Freshness & Integrity (12 pts)
+   - Target Resource Binding (10 pts)
+   - Finding-to-Remediation Correctness (10 pts)
+   - Security-Policy Compliance (10 pts)
+   - Attack-Path & Blast-Radius Impact (10 pts)
+   - Remediation Safety & Reversibility (10 pts)
+   - Preconditions & Rollback Availability (10 pts)
+   - Confidence & Traceability (8 pts)
+   - YAML Rules Consistency (8 pts)
+2. **All 8 Mandatory Security Override Gates Pass:**
+   - `GATE_EVIDENCE_EXISTENCE`: Evidence record must exist.
+   - `GATE_EVIDENCE_INTEGRITY`: Payload hash must match evidence record.
+   - `GATE_EVIDENCE_FRESHNESS`: Evidence must not be stale or expired.
+   - `GATE_RESOURCE_MATCH`: Target resource ARN must be valid.
+   - `GATE_AUTHORIZED_ACTION`: Action must not be in forbidden destructive list.
+   - `GATE_APPROVAL_WINDOW`: Proposal TTL must be active.
+   - `GATE_NO_REPLAY`: Proposal must be in `PENDING` state; double-approval blocked.
+   - `GATE_SECURITY_INVARIANTS`: Rejects prompt injection and destructive shell patterns.
 
 ---
 
-## 5. Security Operations Console (Local Dashboard)
+## 9. ASIVE Adaptive Evolution Lifecycle
 
-A lightweight, high-performance console implemented with Python's standard-library `http.server.ThreadingHTTPServer` and vanilla JavaScript. Contains **zero external CDNs**, runs completely offline on `http://127.0.0.1:8000`, and features 13 tabs:
+The ASIVE (Adaptive Security Intelligence & Verified Evolution) engine provides safe, continuous self-improvement:
 
-1. **Executive Overview:** Real-time KPIs (Security Score 100%, Rules 7/7, Attacks 7/7, 241 Tests Passing, Audit Chain Valid, Zero Mutations Verified).
-2. **Master Scorecard:** Rule status (R01–R07) and attack suite results (T01–T07).
-3. **Exposure Findings:** Vulnerability details, severities, risk scores, and evidence IDs.
-4. **Evidence Registry:** Registered evidence IDs, RFC 8785 canonical hashes, and freshness status.
-5. **Proposal Governance:** Real-time SQLite review queue with out-of-band "Approve", "Reject", and 90% Threshold Auto-Approval.
-6. **Audit Timeline:** Append-only SHA-256 hash-chained event trail.
-7. **Attack Center:** Matrix of all 7 blocked adversarial attacks.
-8. **AgentCore Live Console:** Direct telemetry of AWS region, caller identity, harness configuration, interactive agent chat, and live test runner.
-9. **Multi-Source Intelligence:** Unified canonical findings correlated across AWS Native Connectors, Security Hub, Config, and Prowler.
-10. **Cloud Asset Graph:** Deterministic multi-step attack-path discovery (BFS) and blast-radius choke-point analysis.
-11. **Proof Chain Governance:** 20-step evidence-to-action proof chains, pre-execution drift revalidation, and sealed Merkle dossiers.
-12. **Compliance Frameworks:** Real-time continuous compliance posture mapped across CIS AWS v3.0, NIST CSF 2.0, MITRE ATT&CK Cloud, and OWASP LLM 2025.
-13. **Adaptive Intelligence & Auto-Approval:** Real-time continuous threat observation, normalized change events, impact analysis, sandboxed candidate evaluation, versioned knowledge registry, and 90% threshold auto-approval policy.
+```mermaid
+flowchart LR
+    Obs["1. Continuous Observation"] --> Chg["2. Deduplicated Change Detection"]
+    Chg --> Imp["3. 9-Point Impact Analysis"]
+    Imp --> Cls["4. Problem Classification & Ranking"]
+    Cls --> Sbx["5. Sandboxed Evaluation"]
+    Sbx --> Pol{"6. Policy Guard Review"}
+    Pol -->|"Sensitive IAM/Rule"| Hum["Human Review (APPROVED_FOR_REVIEW)"]
+    Pol -->|"Safe Parameter"| Int["Integration (APPROVED_FOR_INTEGRATION)"]
+    Int --> Rbk["7. Safe Rollback / Self-Healing"]
+```
 
 ---
 
-## 6. Getting Started & Setup
+## 10. Security Boundaries & Human Approval Model
+
+- **AI Self-Approval Prohibition:** The state machine enforces hard rejection (`PermissionError`) if an approval is attempted by `caller_role="ai_agent"`.
+- **Strict Role-Based Access Control:** Only `APPROVER` or `ADMINISTRATOR` identities authenticated via Bcrypt session cookies and CSRF headers may approve proposals manually.
+- **Execution Role Restriction:** Simulated execution transitions require verified `ADMINISTRATOR` authorization.
+
+---
+
+## 11. Technology Stack
+
+- **Core Runtime:** Python 3.10+ (Standard library + minimal vetted dependencies).
+- **Cryptographic Standards:** RFC 8785 (JSON Canonicalization Scheme), SHA-256, Bcrypt password hashing.
+- **Storage:** SQLite 3 (in-tree relational persistence, WAL mode, foreign keys enforced).
+- **Cloud Interface:** AWS SDK for Python (`boto3`, `botocore`) in strictly read-only mode.
+- **Testing & Verification:** `pytest`, custom security evaluation harness (`backend.evaluate`).
+- **Dashboard UI:** Native HTML5, CSS3, Vanilla JavaScript (100% offline, zero external CDN scripts).
+
+---
+
+## 12. Installation & Setup
 
 ### Prerequisites
-- Python 3.10+ (tested on Python 3.14 / 3.15)
-- Dependencies: `boto3`, `pytest`, `bcrypt`, `flake8`, `bandit`, `pip-audit`
+- Python 3.10 through 3.15.
+- Git.
 
-### Installation
+### Step 1: Clone Repository
 ```bash
 git clone https://github.com/NAENSTUDIOS/ExposureFence.git
 cd ExposureFence
-
-# Copy configuration template
-cp .env.example .env
-
-# Generate Bcrypt hash for console admin password
-python -c "import bcrypt; print(bcrypt.hashpw(b'YourAdminPasswordHere', bcrypt.gensalt()).decode())"
-# Add the output to APPROVER_PASSWORD_HASH in .env
 ```
 
-### Running the Local Security Console
+### Step 2: Virtual Environment Setup
+**On Linux / macOS:**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+**On Windows (PowerShell):**
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### Step 3: Install Dependencies
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+---
+
+## 13. Local Execution Instructions
+
+### Step 1: Configure Environment
+Copy the example configuration:
+```bash
+cp .env.example .env
+```
+
+### Step 2: Generate Admin Password Hash
+```bash
+python -c "import bcrypt; print(bcrypt.hashpw(b'YourAdminPasswordHere', bcrypt.gensalt()).decode())"
+```
+Copy the generated string and set `APPROVER_PASSWORD_HASH` in `.env`.
+
+### Step 3: Start Local Backend Server
 ```bash
 python -m backend.server
 ```
-Open your browser to: **`http://127.0.0.1:8000`**  
-Console admin credentials:
-- **Username:** `admin` (or configured `APPROVER_USERNAME`)
-- **Password:** The password corresponding to `APPROVER_PASSWORD_HASH`
+The server will bind strictly to `127.0.0.1:8000`.
 
 ---
 
-## 7. Automated Testing Suite
+## 14. Test Execution Commands
 
-### 1. Offline Verification Suite (241 Tests)
-Runs in ~9 seconds locally without incurring any cloud costs:
+Run the full deterministic offline test suite (244 tests, ~10s execution):
 ```bash
-python -m pytest tests/offline backend/test_database.py -v
+python -m pytest tests/offline backend/test_database.py -q
 ```
 
-### 2. Security Scorecard Evaluation
+Run the declarative security evaluation scorecard:
 ```bash
 python -m backend.evaluate
 ```
-Output:
-```
-ExposureFence Security Scorecard
 
-R01 PASS
-R02 PASS
-R03 PASS
-R04 PASS
-R05 PASS
-R06 PASS
-R07 PASS
+---
 
-Attack Tests:
-T01 PASS
-T02 PASS
-T03 PASS
-T04 PASS
-T05 PASS
-T06 PASS
-T07 PASS
+## 15. Demonstration Scenarios (Success & Failure)
 
-Total Tests Executed: 241
-Final Security Score: 100%
-```
-
-### 3. Attack-Path, Risk & Proof-Chain Scenarios
-Validates all 6 end-to-end integration scenarios (multi-hop traversal, evidence tampering detection, prompt injection boundary containment, pre-execution drift revalidation, risk acceptance zeroing, and independent post-action verification):
+### Scenario A: Successful Remediation Assurance
+Demonstrates compliant post-action ground-truth verification, `VERIFIED` state transition, and sealed Merkle dossier:
 ```bash
-python -m pytest tests/offline/test_integration_scenarios.py -v
+python scripts/demo_success_scenario.py
 ```
 
-### 4. Live Bedrock AgentCore Testing Suite
-Tests the deployed Bedrock AgentCore harness against live AWS infrastructure when credentials and promotional credits are verified:
+### Scenario B: Failed Remediation Assurance & Drift Catching
+Demonstrates independent oracle failure detection, configuration drift catching, and `VERIFICATION_FAILED` state transition without false claims:
 ```bash
-python -m pytest tests/live -v
+python scripts/demo_failure_scenario.py
+```
+
+### Complete 15-Step Portfolio Pipeline
+```bash
+python scripts/demo_pipeline.py
 ```
 
 ---
 
-## 8. Phase 3 Read-Only AWS Connectors & Data Modes
+## 16. Dashboard Access Instructions
 
-ExposureFence supports two operational modes governed by `EXPOSUREFENCE_DATA_MODE`:
-
-1. **`mock` mode (Default):**
-   - Evaluates synthetic AWS fixtures with cryptographic SHA-256 integrity verification.
-   - **Zero AWS calls, zero cloud spend, 100% deterministic local execution.**
-
-2. **`aws` mode (Read-Only Inspection):**
-   - Uses read-only Boto3 connectors in `backend/connectors/`:
-     - **`aws_s3.py`:** Inspects bucket metadata, Block Public Access configuration, bucket policies, and ACLs. Never accesses object contents.
-     - **`aws_ec2.py`:** Inspects security group ingress rules for public CIDRs (`0.0.0.0/0`, `::/0`) and exposed ports (22, 3389). Never authorizes or revokes rules.
-     - **`aws_iam.py`:** Inspects IAM roles, trust policies, and attached administrative policies. Never inspects access keys or exports secrets.
-   - **Zero Mutation Invariant:** All connectors are mathematically provable to be read-only (zero write, update, create, or delete methods).
-   - Generates cryptographically normalized evidence records (`EV-AWS-*`) with SHA-256 digests.
+1. Start the server: `python -m backend.server`
+2. Open your browser: `http://127.0.0.1:8000`
+3. Enter credentials:
+   - **Username:** `admin` (or configured `APPROVER_USERNAME`)
+   - **Password:** The password used when generating your Bcrypt hash.
+4. Navigate through the 13 Security Operations tabs:
+   - Executive Overview, Master Scorecard, Exposure Findings, Evidence Registry, Proposal Governance, Audit Timeline, Attack Center, AgentCore Live Console, Multi-Source Intelligence, Cloud Asset Graph, Proof Chain Governance, Compliance Frameworks, and Adaptive Intelligence.
 
 ---
 
-## 9. Amazon Bedrock AgentCore Deployment
+## 17. Project Roadmap
 
-### Deploy Managed Harness
-```bash
-python -m agent.deploy
-```
-This script:
-1. Validates caller identity via AWS STS.
-2. Registers the three inline tools with strict schemas.
-3. Sets `allowedTools = ["read_mock_s3", "read_mock_security_groups", "propose_fix"]`.
-4. Creates or updates `ExposureFenceHarness` with Amazon Nova Lite (`amazon.nova-lite-v1:0`).
-5. Saves state to `agent/harness_state.json`.
-
-### Direct Agent Invocation
-```bash
-python -m agent.invoke "Review mock S3 and security-group data, identify exposure risks, and propose remediation."
-```
+- [x] **Phase 1–3:** Security Dashboard, REST API, Read-Only AWS Connectors (S3, EC2, IAM).
+- [x] **Phase 4–5:** RFC 8785 Evidence Ledger, Declarative YAML Rules Engine.
+- [x] **Phase 6–7:** Bedrock AgentCore client harness, 3-tool dispatcher.
+- [x] **Phase 8–10:** Multi-hop attack paths, contextual risk, Merkle evidence dossiers.
+- [x] **Advanced Capabilities:** 90% threshold auto-approval policy, ASIVE adaptive engine.
+- [x] **Release Candidate 1.0:** Pre-publication validation, boundary testing (244 tests).
+- [ ] **Phase 11 (Future):** Multi-cloud read-only collectors (Azure Blob/IAM, GCP Cloud Storage/IAM).
+- [ ] **Phase 12 (Future):** Optional operator-gated production cloud dispatcher with hardware MFA.
 
 ---
 
-## 10. Strict Zero-Cost & Financial Policy
+## 18. Contribution Instructions
 
-ExposureFence is strictly governed by a **₹0.00 / $0.00 out-of-pocket budget**:
-- **Offline Development:** All 46 core tests and the local Security Operations Console run 100% locally on standard Python and SQLite without cloud charges.
-- **Controlled Invocations:** Max tokens capped at 1,000; AgentCore Memory, Gateway, Browser, and Code Interpreter are permanently disabled.
-- **Cloud Pause & Teardown:** Whenever a cloud demonstration concludes, run the decommissioning script to eliminate all recurring charges:
-  ```bash
-  python -m agent.teardown
-  ```
-- Full policy details: See [docs/ZERO_COST_POLICY.md](file:///c:/Users/nasir/ExposureFence/docs/ZERO_COST_POLICY.md).
+We welcome contributions from cloud security engineers, DevSecOps practitioners, and AI safety researchers. Please review our guidelines before submitting pull requests:
+- [CONTRIBUTING.md](file:///c:/Users/nasir/ExposureFence/CONTRIBUTING.md): Architectural invariants and PR workflow.
+- [CODE_OF_CONDUCT.md](file:///c:/Users/nasir/ExposureFence/CODE_OF_CONDUCT.md): Community expectations and reporting.
+- [docs/DEVELOPER_ONBOARDING.md](file:///c:/Users/nasir/ExposureFence/docs/DEVELOPER_ONBOARDING.md): Detailed local development guide.
 
 ---
 
-## 11. License
+## 19. Security Disclosure Instructions
 
-ExposureFence is licensed under the **MIT License**. See `LICENSE` for details.
+If you discover a potential vulnerability, approval gate bypass, or prompt injection boundary issue:
+- **DO NOT OPEN A PUBLIC ISSUE.**
+- Follow our responsible disclosure process in [SECURITY.md](file:///c:/Users/nasir/ExposureFence/SECURITY.md) or email `security@naenstudios.com`.
+
+---
+
+## 20. Limitations & Disclaimers
+
+### Transparent Operating Disclosures
+- **Offline Simulation Mode:** By design, all tests and evaluations operate against synthetic, cryptographically signed AWS fixtures (`mock_data/`). The platform does NOT execute mutations in live cloud accounts during offline runs.
+- **Zero Cost Invariant:** Running offline tests or local demonstrations incurs **₹0.00 / $0.00** out-of-pocket spend.
+- **Docker Daemon Runtime:** Container build configurations (`Dockerfile`, `docker-compose.yml`) are implemented to specification; live runtime verification is classified as `IMPLEMENTED NOT VERIFIED RUNTIME` due to local daemon unavailability.
+- **No Claims of Absolute Security:** ExposureFence makes no claim of "100% invulnerability" or "zero flaws" in arbitrary unverified environments. Its assurances are strictly grounded in its 244 passing regression tests, deterministic proof chain, and independent test oracles.
+- For complete operational disclosures, see [docs/RELEASE_LIMITATIONS.md](file:///c:/Users/nasir/ExposureFence/docs/RELEASE_LIMITATIONS.md).
+
+---
+
+## License
+
+ExposureFence is licensed under the **MIT License**. See [LICENSE](file:///c:/Users/nasir/ExposureFence/LICENSE) for full legal text. For an architectural analysis of license options (including Apache 2.0 implications), see [docs/LICENSE_SELECTION.md](file:///c:/Users/nasir/ExposureFence/docs/LICENSE_SELECTION.md).
