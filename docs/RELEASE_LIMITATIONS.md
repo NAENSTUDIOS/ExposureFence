@@ -41,7 +41,7 @@ This document provides an explicit, transparent accounting of the architectural 
 - **Audit Findings:**
   - Python's standard `compileall` tool verified that all 46 Python source files across `backend/`, `agent/`, `tests/`, and `scripts/` compile cleanly with zero syntax errors, type incompatibilities, or broken local imports.
   - External static analysis binaries (`flake8`, `bandit`, `pip-audit`) were not pre-installed in the host Python virtual environment (`pythoncore-3.15-64`). Rather than improvising unvetted installations, the absence of these external CLI wrappers is documented truthfully.
-  - The runtime environment's core packages (`pydantic`, `fastapi`, `uvicorn`, `rfc8785`, `boto3`, `botocore`, `bcrypt`, `pytest`) are standard, well-vetted, and pinned in `requirements.txt`.
+  - The project's core runtime dependencies (boto3, botocore, bcrypt, pytest, rfc8785) are standard, well-vetted, and pinned in requirements.txt.
 
 ### 2.5 Amazon Bedrock AgentCore Connectivity
 - **Status:** **OFFLINE HARNESS COMPLETE; LIVE CLOUD SESSION PENDING OPERATOR ACTIVATION**.

@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from botocore.exceptions import ClientError
 from backend.connectors.aws_session import get_boto3_session
+from backend.connectors.evidence_status import AssessmentStatus, build_failure_evidence, map_error_to_assessment_status
 
 logger = logging.getLogger("exposurefence.connectors.ec2")
 
@@ -77,9 +78,22 @@ def analyze_security_group_ingress(sg: Dict[str, Any]) -> List[Dict[str, Any]]:
 def collect_ec2_exposure_evidence(sg: Dict[str, Any], session=None, account_id: Optional[str] = None, region: str = "us-east-1") -> Dict[str, Any]:
     """
     Analyzes a security group and produces a normalized Evidence record.
+    Maps API errors to explicit failure states (never clean/secure).
     """
     sg_id = sg.get("GroupId", "unknown")
-    exposures = analyze_security_group_ingress(sg)
+    try:
+        exposures = analyze_security_group_ingress(sg)
+    except Exception as exc:
+        logger.warning("Error analyzing EC2 security group %s: %s", sg_id, exc)
+        status = map_error_to_assessment_status(exc)
+        return build_failure_evidence(
+            resource_id=sg_id,
+            source_type="AWS::EC2::SecurityGroup",
+            status=status,
+            error_message=str(exc),
+            account_id=account_id,
+            region=region
+        )
 
     raw_evidence = {
         "resource_id": sg_id,

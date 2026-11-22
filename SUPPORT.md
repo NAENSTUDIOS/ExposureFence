@@ -10,10 +10,10 @@ Depending on the nature of your question or issue, please use the appropriate ch
 
 ### Technical Questions & Usage Guidance
 - **GitHub Discussions / Issues:** If you have questions about running ExposureFence locally, interpreting security scorecards, or extending offline test fixtures, please check existing GitHub issues or open a new discussion.
-- **Documentation:** Comprehensive architecture and operating guides are available in the [docs/](file:///c:/Users/nasir/ExposureFence/docs) directory:
-  - [docs/DEVELOPER_ONBOARDING.md](file:///c:/Users/nasir/ExposureFence/docs/DEVELOPER_ONBOARDING.md): Step-by-step setup and local execution guide.
-  - [docs/PUBLIC_FEATURE_STATUS.md](file:///c:/Users/nasir/ExposureFence/docs/PUBLIC_FEATURE_STATUS.md): Current status of every module.
-  - [docs/RELEASE_LIMITATIONS.md](file:///c:/Users/nasir/ExposureFence/docs/RELEASE_LIMITATIONS.md): Transparent operational boundaries.
+- **Documentation:** Comprehensive architecture and operating guides are available in the [docs/](docs/) directory:
+  - [docs/DEVELOPER_ONBOARDING.md](docs/DEVELOPER_ONBOARDING.md): Step-by-step setup and local execution guide.
+  - [docs/PUBLIC_FEATURE_STATUS.md](docs/PUBLIC_FEATURE_STATUS.md): Current status of every module.
+  - [docs/RELEASE_LIMITATIONS.md](docs/RELEASE_LIMITATIONS.md): Transparent operational boundaries.
 
 ### Bug Reports
 If you encounter an unexpected crash, assertion failure, or test error:
@@ -23,7 +23,7 @@ If you encounter an unexpected crash, assertion failure, or test error:
 ### Security Vulnerabilities
 If you believe you have discovered a security vulnerability or governance bypass:
 - **Do NOT open a public issue.**
-- Refer to [SECURITY.md](file:///c:/Users/nasir/ExposureFence/SECURITY.md) and report privately to `security@naenstudios.com`.
+- Refer to [SECURITY.md](SECURITY.md) and report privately to `security@naenstudios.com`.
 
 ---
 

@@ -113,6 +113,7 @@ flowchart TD
 - **Independent Post-Action Verification:** Dual-mode ground-truth verification preventing false compliance certifications.
 - **Tamper-Evident Audit Ledger:** Forward and backward SHA-256 hash chaining of every state transition and operator action.
 - **Local Security Console:** 13-tab dark-mode Security Operations Console running locally with zero external CDN dependencies.
+- **Dependencies:** boto3, botocore, pytest, bcrypt, rfc8785, flake8, bandit, pip-audit
 
 ---
 
@@ -317,9 +318,9 @@ python scripts/demo_pipeline.py
 ## 18. Contribution Instructions
 
 We welcome contributions from cloud security engineers, DevSecOps practitioners, and AI safety researchers. Please review our guidelines before submitting pull requests:
-- [CONTRIBUTING.md](file:///c:/Users/nasir/ExposureFence/CONTRIBUTING.md): Architectural invariants and PR workflow.
-- [CODE_OF_CONDUCT.md](file:///c:/Users/nasir/ExposureFence/CODE_OF_CONDUCT.md): Community expectations and reporting.
-- [docs/DEVELOPER_ONBOARDING.md](file:///c:/Users/nasir/ExposureFence/docs/DEVELOPER_ONBOARDING.md): Detailed local development guide.
+- [CONTRIBUTING.md](CONTRIBUTING.md): Architectural invariants and PR workflow.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): Community expectations and reporting.
+- [docs/DEVELOPER_ONBOARDING.md](docs/DEVELOPER_ONBOARDING.md): Detailed local development guide.
 
 ---
 
@@ -327,7 +328,7 @@ We welcome contributions from cloud security engineers, DevSecOps practitioners,
 
 If you discover a potential vulnerability, approval gate bypass, or prompt injection boundary issue:
 - **DO NOT OPEN A PUBLIC ISSUE.**
-- Follow our responsible disclosure process in [SECURITY.md](file:///c:/Users/nasir/ExposureFence/SECURITY.md) or email `security@naenstudios.com`.
+- Follow our responsible disclosure process in [SECURITY.md](SECURITY.md) or email `security@naenstudios.com`.
 
 ---
 
@@ -338,10 +339,10 @@ If you discover a potential vulnerability, approval gate bypass, or prompt injec
 - **Zero Cost Invariant:** Running offline tests or local demonstrations incurs **₹0.00 / $0.00** out-of-pocket spend.
 - **Docker Daemon Runtime:** Container build configurations (`Dockerfile`, `docker-compose.yml`) are implemented to specification; live runtime verification is classified as `IMPLEMENTED NOT VERIFIED RUNTIME` due to local daemon unavailability.
 - **No Claims of Absolute Security:** ExposureFence makes no claim of "100% invulnerability" or "zero flaws" in arbitrary unverified environments. Its assurances are strictly grounded in its 244 passing regression tests, deterministic proof chain, and independent test oracles.
-- For complete operational disclosures, see [docs/RELEASE_LIMITATIONS.md](file:///c:/Users/nasir/ExposureFence/docs/RELEASE_LIMITATIONS.md).
+- For complete operational disclosures, see [docs/RELEASE_LIMITATIONS.md](docs/RELEASE_LIMITATIONS.md).
 
 ---
 
 ## License
 
-ExposureFence is licensed under the **MIT License**. See [LICENSE](file:///c:/Users/nasir/ExposureFence/LICENSE) for full legal text. For an architectural analysis of license options (including Apache 2.0 implications), see [docs/LICENSE_SELECTION.md](file:///c:/Users/nasir/ExposureFence/docs/LICENSE_SELECTION.md).
+ExposureFence is licensed under the **MIT License**. See [LICENSE](LICENSE) for full legal text. For an architectural analysis of license options (including Apache 2.0 implications), see [docs/LICENSE_SELECTION.md](docs/LICENSE_SELECTION.md).

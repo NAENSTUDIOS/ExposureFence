@@ -5,7 +5,8 @@ ExposureFence Cloud Asset Graph & Attack-Path Intelligence Package
 from backend.graph.attack_paths import AttackPathEngine
 from backend.graph.blast_radius import BlastRadiusEngine
 from backend.graph.engine import ResourceGraph
-from backend.graph.iam_analyzer import IAMPrivilegeAnalyzer
+from backend.graph.iam_analyzer import IAMPrivilegeAnalyzer, ingest_iam_evidence_to_graph
+from backend.graph.s3_analyzer import ingest_s3_evidence_to_graph
 from backend.graph.models import (
     AttackPath,
     BlastRadiusResult,
@@ -29,5 +30,7 @@ __all__ = [
     "AttackPathEngine",
     "BlastRadiusEngine",
     "IAMPrivilegeAnalyzer",
+    "ingest_iam_evidence_to_graph",
+    "ingest_s3_evidence_to_graph",
     "GraphVisualizer",
 ]
